@@ -51,7 +51,7 @@ Additional vendors and custom OUI/UUID filters can be added via the web UI.
 
 ## Adding new vendors
 
-Web UI → Filters → Add filter. Supports:
+Web UI -> Filters -> Add filter. Supports:
 - OUI prefix (`AA:BB:CC`)
 - Full MAC (`AA:BB:CC:DD:EE:FF`)
 - BT SIG company ID (`0x034D`)
