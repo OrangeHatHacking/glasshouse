@@ -104,15 +104,12 @@ def fingerprints_similar(a: Fingerprint, b: Fingerprint) -> bool:
         return True
 
     # Same UUID set and TX power.
-    if (
+    return bool(
         a.uuid_set
         and a.uuid_set == b.uuid_set
         and a.tx_power is not None
         and a.tx_power == b.tx_power
-    ):
-        return True
-
-    return False
+    )
 
 
 # ---------------------------------------------------------------------------

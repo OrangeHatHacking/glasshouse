@@ -229,7 +229,7 @@ def step_ap_credentials() -> None:
         # Still print the SSID for reference
         content = AP_CONF.read_text()
         for line in content.splitlines():
-            if line.startswith("SSID=") or line.startswith("PASSWORD="):
+            if line.startswith(("SSID=", "PASSWORD=")):
                 print("     ", line)
         return
 
@@ -260,6 +260,7 @@ def step_services() -> None:
         result = subprocess.run(
             ["systemctl", "enable", svc],
             capture_output=True,
+            check=False,
         )
         status = "OK" if result.returncode == 0 else "SKIP (not installed yet)"
         print(f"      {svc}: {status}")

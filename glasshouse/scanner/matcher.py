@@ -97,10 +97,7 @@ def _match_composite(
     # Both CID and UUID must be present for this path.
     cid_ok = (f.cid is None) or (f.cid in cids)
     uuid_ok = (f.uuid is None) or (f.uuid in uuids)
-    if cid_ok and uuid_ok and (f.cid is not None or f.uuid is not None):
-        return True
-
-    return False
+    return cid_ok and uuid_ok and (f.cid is not None or f.uuid is not None)
 
 
 def match_vendor(
@@ -176,15 +173,18 @@ def match_vendor(
                         cooldown_seconds=vendor.alert_cooldown_seconds,
                     )
 
-            elif isinstance(f, NameFilter):
-                if local_name and f.substring.lower() in local_name.lower():
-                    return MatchResult(
-                        vendor=vendor.name,
-                        category=vendor.category,
-                        match_type="name",
-                        matched_value=f.substring,
-                        cooldown_seconds=vendor.alert_cooldown_seconds,
-                    )
+            elif (
+                isinstance(f, NameFilter)
+                and local_name
+                and f.substring.lower() in local_name.lower()
+            ):
+                return MatchResult(
+                    vendor=vendor.name,
+                    category=vendor.category,
+                    match_type="name",
+                    matched_value=f.substring,
+                    cooldown_seconds=vendor.alert_cooldown_seconds,
+                )
 
     return None
 
@@ -255,14 +255,13 @@ def match_custom_filters(
             except ValueError:
                 log.warning("Invalid UUID filter value: %s", value)
 
-        elif ftype == "name":
-            if local_name and value.lower() in local_name.lower():
-                return MatchResult(
-                    vendor=desc,
-                    category="custom",
-                    match_type="custom:name",
-                    matched_value=value,
-                    cooldown_seconds=30,
-                )
+        elif ftype == "name" and local_name and value.lower() in local_name.lower():
+            return MatchResult(
+                vendor=desc,
+                category="custom",
+                match_type="custom:name",
+                matched_value=value,
+                cooldown_seconds=30,
+            )
 
     return None
