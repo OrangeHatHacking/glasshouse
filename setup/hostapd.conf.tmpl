@@ -1,0 +1,17 @@
+interface=wlan0
+driver=nl80211
+ssid={{SSID}}
+ignore_broadcast_ssid=1
+hw_mode=g
+channel=6
+ieee80211n=1
+wmm_enabled=1
+
+# WPA3-Personal (SAE)
+auth_algs=1
+wpa=2
+wpa_key_mgmt=SAE
+rsn_pairwise=CCMP
+wpa_passphrase={{PASSWORD}}
+ieee80211w=2
+sae_require_mfp=1

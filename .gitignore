@@ -1,0 +1,45 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# Secrets
+/etc/glasshouse/
+setup/certs/
+*.p12
+*.pem
+*.key
+*.crt
+*.csr
+ap.conf
+secret
+
+# Dev data (from --debug mode)
+dev_data/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage

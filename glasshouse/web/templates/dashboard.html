@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Recent Detections</h2>
+{% if detections %}
+<table>
+  <thead>
+    <tr>
+      <th>Time</th>
+      <th>MAC</th>
+      <th>Vendor</th>
+      <th>Match</th>
+      <th>RSSI</th>
+      <th>Alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in detections %}
+    <tr>
+      <td style="color:var(--muted);font-size:11px;">{{ d.timestamp[:19].replace('T',' ') }}</td>
+      <td>{{ d.mac }}</td>
+      <td><span class="badge badge-{{ d.match_type.split(':')[0] if d.match_type else 'custom' }}">{{ d.vendor or '—' }}</span></td>
+      <td style="color:var(--muted);font-size:11px;">{{ d.match_type }}</td>
+      <td class="{% if d.rssi and d.rssi > -60 %}rssi-strong{% elif d.rssi and d.rssi > -80 %}rssi-medium{% else %}rssi-weak{% endif %}">
+        {{ d.rssi or '—' }}
+      </td>
+      <td style="color:var(--muted);">{{ d.alias or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No detections yet. Scanner is active.</p>
+{% endif %}
+{% endblock %}

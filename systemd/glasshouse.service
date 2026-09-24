@@ -1,0 +1,25 @@
+[Unit]
+Description=Glasshouse BLE detector
+After=network.target bluetooth.target hostapd.service
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/opt/glasshouse/venv/bin/python3 -m glasshouse.main
+WorkingDirectory=/opt/glasshouse
+Restart=on-failure
+RestartSec=5
+WatchdogSec=60
+EnvironmentFile=-/etc/glasshouse/env
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=glasshouse
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/glasshouse /etc/glasshouse
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

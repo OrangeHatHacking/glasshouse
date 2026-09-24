@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Live scan: {{ total }} device(s) nearby</h2>
+<p style="color:var(--muted);font-size:11px;margin-bottom:16px;">
+  All BLE devices seen in the last 60 seconds. Auto-refreshes every 5 seconds.
+</p>
+
+{% macro device_table(devices) %}
+<table>
+  <thead>
+    <tr>
+      <th>MAC</th>
+      <th>Name</th>
+      <th>Manufacturer</th>
+      <th>RSSI</th>
+      <th>Company IDs</th>
+      <th>Service UUIDs</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in devices %}
+    <tr>
+      <td style="font-size:11px;">{{ d.mac }}</td>
+      <td>{{ d.name or '—' }}</td>
+      <td>
+        {% if d.manufacturer == 'Randomised' %}
+          <span style="color:var(--muted);font-style:italic;">Randomised</span>
+        {% elif d.manufacturer == 'Unknown' %}
+          <span style="color:var(--muted);">Unknown</span>
+        {% else %}
+          <span style="color:var(--accent);">{{ d.manufacturer }}</span>
+        {% endif %}
+      </td>
+      <td class="{% if d.rssi and d.rssi > -60 %}rssi-strong{% elif d.rssi and d.rssi > -80 %}rssi-medium{% else %}rssi-weak{% endif %}">
+        {{ d.rssi or '—' }}
+      </td>
+      <td style="color:var(--muted);font-size:11px;">{{ d.company_ids|join(', ') if d.company_ids else '—' }}</td>
+      <td style="color:var(--muted);font-size:10px;">
+        {% if d.service_uuids %}
+          {% for u in d.service_uuids[:3] %}{{ u[-8:-4] if u|length > 8 else u }}{% if not loop.last %}, {% endif %}{% endfor %}
+          {% if d.service_uuids|length > 3 %} +{{ d.service_uuids|length - 3 }}{% endif %}
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endmacro %}
+
+{% if matched %}
+<h2 style="color:var(--danger);border-color:var(--danger);">Vendor Matches ({{ matched|length }})</h2>
+<p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
+  Devices matching a known surveillance vendor signature.
+</p>
+{{ device_table(matched) }}
+{% endif %}
+
+{% if interesting %}
+<h2>Named Unknown Devices ({{ interesting|length }})</h2>
+<p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
+  Unidentified manufacturer but advertising a device name.
+  If you recognise a bodycam or radio here, note the MAC prefix and add it as a custom filter.
+</p>
+{{ device_table(interesting) }}
+{% endif %}
+
+{% if everything_else %}
+<details style="margin-top:20px;">
+  <summary style="color:var(--muted);cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;">
+    All other devices ({{ everything_else|length }}) - click to expand
+  </summary>
+  <div style="margin-top:8px;">
+  {{ device_table(everything_else) }}
+  </div>
+</details>
+{% endif %}
+
+{% if not matched and not interesting and not everything_else %}
+<p class="empty">No BLE devices detected. Is Bluetooth enabled?</p>
+{% endif %}
+
+<script>
+setTimeout(function(){ location.reload(); }, 5000);
+</script>
+{% endblock %}

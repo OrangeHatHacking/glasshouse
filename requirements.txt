@@ -1,0 +1,25 @@
+# BLE scanning
+bleak>=0.21.1
+
+# Web framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+jinja2>=3.1.3
+aiofiles>=23.2.1
+python-multipart>=0.0.9
+
+# Data validation
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# Encrypted storage
+sqlcipher3>=0.5.3
+
+# MQTT (optional)
+paho-mqtt>=2.0.0
+
+# Cert generation
+cryptography>=42.0.0
+
+# GPIO (Pi only)
+# RPi.GPIO>=0.7.1

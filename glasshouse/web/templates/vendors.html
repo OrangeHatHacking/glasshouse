@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Built-in Vendor Database</h2>
+<p style="color:var(--muted);font-size:12px;margin-bottom:16px;">
+  These vendors are hardcoded in the application. Toggle to enable/disable detection.
+  To add new vendors not listed here, use the Filters page.
+</p>
+<table>
+  <thead>
+    <tr><th>Vendor</th><th>Category</th><th>Description</th><th>Filters</th><th>Status</th></tr>
+  </thead>
+  <tbody>
+    {% for v in vendors %}
+    <tr>
+      <td><strong>{{ v.name }}</strong></td>
+      <td><span class="badge badge-{{ v.category }}">{{ v.category }}</span></td>
+      <td style="color:var(--muted);font-size:12px;">{{ v.description }}</td>
+      <td style="color:var(--muted);font-size:11px;">{{ v.filters|length }} signature(s)</td>
+      <td>
+        <form class="inline" method="post" action="/vendors/toggle/{{ v.name }}">
+          <button type="submit" class="{% if not v.enabled %}danger{% endif %}">
+            {{ 'Enabled' if v.enabled else 'Disabled' }}
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

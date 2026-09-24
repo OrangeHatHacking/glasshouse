@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Custom Filters</h2>
+<p style="color:var(--muted);font-size:12px;margin-bottom:16px;">
+  Add OUI prefixes, full MACs, BT company IDs, service UUIDs, or name substrings.
+  These are in addition to the built-in vendor database.
+</p>
+<form method="post" action="/filters/add" style="margin-bottom:24px;">
+  <div class="field">
+    <label>Type</label>
+    <select name="type">
+      <option value="oui">OUI prefix (AA:BB:CC)</option>
+      <option value="mac">Full MAC (AA:BB:CC:DD:EE:FF)</option>
+      <option value="cid">BT Company ID (0x034D)</option>
+      <option value="uuid">Service UUID (0xFC81)</option>
+      <option value="name">Device name substring</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Value</label>
+    <input type="text" name="value" placeholder="e.g. 00:1E:96" required>
+  </div>
+  <div class="field">
+    <label>Description (optional)</label>
+    <input type="text" name="description" placeholder="e.g. Unknown bodycam Ireland">
+  </div>
+  <button type="submit">Add Filter</button>
+</form>
+
+{% if filters %}
+<table>
+  <thead>
+    <tr><th>ID</th><th>Type</th><th>Value</th><th>Description</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for f in filters %}
+    <tr>
+      <td style="color:var(--muted);">{{ f.id }}</td>
+      <td><span class="badge badge-custom">{{ f.type }}</span></td>
+      <td>{{ f.value }}</td>
+      <td style="color:var(--muted);">{{ f.description or '' }}</td>
+      <td>
+        <form class="inline" method="post" action="/filters/remove/{{ f.id }}">
+          <button class="danger" type="submit">Remove</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No custom filters. Built-in vendor DB is always active.</p>
+{% endif %}
+{% endblock %}

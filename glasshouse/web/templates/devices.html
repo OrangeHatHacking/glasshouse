@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Device History</h2>
+<form class="inline" method="post" action="/devices/clear" style="float:right;margin-bottom:12px;">
+  <button class="danger" type="submit"
+    onclick="return confirm('Clear all device history?')">Clear All</button>
+</form>
+{% if history %}
+<table>
+  <thead>
+    <tr>
+      <th>MAC</th><th>Alias</th><th>First Seen</th><th>Last Seen</th><th>Count</th><th>Set Alias</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in history %}
+    <tr>
+      <td>{{ d.mac }}</td>
+      <td style="color:var(--accent);">{{ d.alias or '' }}</td>
+      <td style="color:var(--muted);font-size:11px;">{{ d.first_seen[:19].replace('T',' ') }}</td>
+      <td style="color:var(--muted);font-size:11px;">{{ d.last_seen[:19].replace('T',' ') }}</td>
+      <td>{{ d.detection_count }}</td>
+      <td>
+        <form class="inline" method="post" action="/devices/alias">
+          <input type="hidden" name="mac" value="{{ d.mac }}">
+          <input type="text" name="alias" value="{{ d.alias or '' }}"
+                 placeholder="name" style="width:120px;display:inline;margin:0;">
+          <button type="submit">Set</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">No devices detected yet.</p>
+{% endif %}
+{% endblock %}

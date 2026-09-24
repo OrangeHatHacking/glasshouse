@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Settings</h2>
+<form method="post" action="/settings/save">
+  <h2 style="margin-top:20px;">MQTT</h2>
+  <div class="field">
+    <label><input type="checkbox" name="mqtt_enabled"
+      {% if settings.mqtt_enabled == '1' %}checked{% endif %}> Enable MQTT reporting</label>
+  </div>
+  <div class="field">
+    <label>Broker IP / hostname</label>
+    <input type="text" name="mqtt_broker" value="{{ settings.mqtt_broker }}" placeholder="192.168.1.x">
+  </div>
+  <div class="field">
+    <label>Port</label>
+    <input type="number" name="mqtt_port" value="{{ settings.mqtt_port or '1883' }}">
+  </div>
+  <div class="field">
+    <label>Username (optional)</label>
+    <input type="text" name="mqtt_user" value="{{ settings.mqtt_user }}">
+  </div>
+  <div class="field">
+    <label>Password{% if settings.mqtt_password_set %} (set - leave blank to keep){% endif %}</label>
+    <input type="password" name="mqtt_password" placeholder="{% if settings.mqtt_password_set %}unchanged{% else %}optional{% endif %}">
+  </div>
+  <div class="field">
+    <label>Topic</label>
+    <input type="text" name="mqtt_topic" value="{{ settings.mqtt_topic or 'glasshouse/detection' }}">
+  </div>
+  <div class="field">
+    <label><input type="checkbox" name="mqtt_tls"
+      {% if settings.mqtt_tls == '1' %}checked{% endif %}> Require TLS</label>
+  </div>
+
+  <h2 style="margin-top:20px;">Hardware</h2>
+  <div class="field">
+    <label><input type="checkbox" name="led_enabled"
+      {% if settings.led_enabled != '0' %}checked{% endif %}> LED alerts enabled</label>
+  </div>
+  <div class="field">
+    <label><input type="checkbox" name="buzzer_enabled"
+      {% if settings.buzzer_enabled == '1' %}checked{% endif %}> Buzzer enabled (requires hardware)</label>
+  </div>
+
+  <button type="submit">Save Settings</button>
+</form>
+{% endblock %}
