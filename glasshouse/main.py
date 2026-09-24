@@ -48,7 +48,9 @@ for _lib_name in ("bleak", "dbus_fast"):
         _lib_logger.propagate = True
         continue
 
-    _ble_log_path = config._dev_dir / "ble_debug.log" if hasattr(config, "_dev_dir") else None
+    _ble_log_path = (
+        config._dev_dir / "ble_debug.log" if hasattr(config, "_dev_dir") else None
+    )
     _fmt = logging.Formatter(
         "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -70,8 +72,11 @@ for _lib_name in ("bleak", "dbus_fast"):
 
 async def main() -> None:
     if config.DEBUG:
-        log.info("Glasshouse starting in DEBUG mode (http://%s:%s)",
-                 config.AP_IP, config.WEB_PORT)
+        log.info(
+            "Glasshouse starting in DEBUG mode (http://%s:%s)",
+            config.AP_IP,
+            config.WEB_PORT,
+        )
     else:
         log.info("Glasshouse starting")
 

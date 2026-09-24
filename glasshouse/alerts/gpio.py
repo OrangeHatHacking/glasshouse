@@ -27,7 +27,8 @@ _pwm_buzzer = None
 def _setup_gpio() -> bool:
     global _gpio_available, _gpio, _pwm_led, _pwm_buzzer
     try:
-        import RPi.GPIO as GPIO
+        from RPi import GPIO
+
         _gpio = GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -41,7 +42,9 @@ def _setup_gpio() -> bool:
             _pwm_buzzer.start(0)
 
         _gpio_available = True
-        log.info("GPIO initialised (LED=GPIO%d, buzzer stub=GPIO%d)", LED_PIN, BUZZER_PIN)
+        log.info(
+            "GPIO initialised (LED=GPIO%d, buzzer stub=GPIO%d)", LED_PIN, BUZZER_PIN
+        )
         return True
     except ImportError:
         log.debug("RPi.GPIO not available - GPIO alerts disabled (dev mode)")
@@ -68,6 +71,7 @@ def cleanup() -> None:
 # LED helpers
 # ---------------------------------------------------------------------------
 
+
 def _led_duty(duty: float) -> None:
     """Set LED PWM duty cycle (0-100)."""
     if _gpio_available and _pwm_led:
@@ -86,17 +90,21 @@ def _led_full() -> None:
 # Buzzer helpers. No-op until BUZZER_ENABLED = True.
 # ---------------------------------------------------------------------------
 
+
 def _beep(freq: int = 2000, duration: float = 0.1) -> None:
     if not BUZZER_ENABLED or not _gpio_available or not _pwm_buzzer:
         return
     _pwm_buzzer.ChangeFrequency(freq)
     _pwm_buzzer.ChangeDutyCycle(50)
-    asyncio.get_event_loop().call_later(duration, lambda: _pwm_buzzer.ChangeDutyCycle(0))
+    asyncio.get_event_loop().call_later(
+        duration, lambda: _pwm_buzzer.ChangeDutyCycle(0)
+    )
 
 
 # ---------------------------------------------------------------------------
 # Async alert patterns
 # ---------------------------------------------------------------------------
+
 
 async def breathing_loop(stop_event: asyncio.Event) -> None:
     """

@@ -13,8 +13,7 @@ primary match but do not override it.
 
 import hashlib
 import logging
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -26,20 +25,21 @@ class Fingerprint:
     Two advertisements with the same fingerprint likely come from the
     same device class, possibly the same device instance.
     """
-    digest: str                         # SHA-256 of stable fields
-    cid_set: frozenset[int]             # company IDs seen
-    uuid_set: frozenset[int]            # 16-bit service UUIDs seen
-    tx_power: Optional[int]             # advertised TX power (dBm)
+
+    digest: str  # SHA-256 of stable fields
+    cid_set: frozenset[int]  # company IDs seen
+    uuid_set: frozenset[int]  # 16-bit service UUIDs seen
+    tx_power: int | None  # advertised TX power (dBm)
     has_manufacturer_data: bool
     manufacturer_data_lengths: tuple[int, ...]  # payload byte lengths per CID
-    local_name: Optional[str]
+    local_name: str | None
 
 
 def build_fingerprint(
     manufacturer_data: dict[int, bytes],
     service_uuids: list[str],
-    local_name: Optional[str],
-    tx_power: Optional[int],
+    local_name: str | None,
+    tx_power: int | None,
 ) -> Fingerprint:
     """
     Build a stable fingerprint from advertisement payload.
@@ -64,9 +64,7 @@ def build_fingerprint(
                 pass
 
     # Manufacturer data payload lengths (sorted by CID for determinism)
-    mfr_lengths = tuple(
-        len(v) for _, v in sorted(manufacturer_data.items())
-    )
+    mfr_lengths = tuple(len(v) for _, v in sorted(manufacturer_data.items()))
 
     # Build digest from stable fields
     h = hashlib.sha256()
@@ -125,24 +123,18 @@ def fingerprints_similar(a: Fingerprint, b: Fingerprint) -> bool:
 
 # Format: 'description' -> callable(Fingerprint) -> bool
 KNOWN_PATTERNS: dict[str, callable] = {
-
     # Sepura SC21: BLE used for companion app pairing.
     # Pattern TBD. Add manufacturer data structure once captures are available.
     # Placeholder always returns False until real data is added.
     "Sepura SC21 (placeholder)": lambda fp: False,
-
     # Axon body cameras advertise CID 0x034D (TASER) reliably.
     "Axon bodycam (CID 0x034D)": lambda fp: 0x034D in fp.cid_set,
-
     # Meta Ray-Ban: Luxottica CID (0x0D53) + Meta UUID (0xFD5F)
-    "Meta Ray-Ban glasses": lambda fp: (
-        0x0D53 in fp.cid_set and 0xFD5F in fp.uuid_set
-    ),
-
+    "Meta Ray-Ban glasses": lambda fp: 0x0D53 in fp.cid_set and 0xFD5F in fp.uuid_set,
 }
 
 
-def identify_by_fingerprint(fp: Fingerprint) -> Optional[str]:
+def identify_by_fingerprint(fp: Fingerprint) -> str | None:
     """
     Check a fingerprint against known device patterns.
     Returns the pattern description if matched, None otherwise.

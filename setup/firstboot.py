@@ -12,7 +12,6 @@ Must be run as root. Safe to re-run.
 
 import os
 import secrets
-import stat
 import string
 import subprocess
 import sys
@@ -101,32 +100,87 @@ def step_certs() -> None:
 
     # CA
     run("openssl", "genrsa", "-out", str(ca_key), "4096")
-    run("openssl", "req", "-new", "-x509", "-days", "3650",
-        "-key", str(ca_key), "-out", str(ca_crt),
-        "-subj", "/CN=Glasshouse-CA/O=Glasshouse")
+    run(
+        "openssl",
+        "req",
+        "-new",
+        "-x509",
+        "-days",
+        "3650",
+        "-key",
+        str(ca_key),
+        "-out",
+        str(ca_crt),
+        "-subj",
+        "/CN=Glasshouse-CA/O=Glasshouse",
+    )
 
     # Server cert
     run("openssl", "genrsa", "-out", str(srv_key), "4096")
-    run("openssl", "req", "-new", "-key", str(srv_key), "-out", str(srv_csr),
-        "-subj", "/CN=192.168.4.1/O=Glasshouse")
-    run("openssl", "x509", "-req", "-days", "3650",
-        "-in", str(srv_csr), "-CA", str(ca_crt), "-CAkey", str(ca_key),
-        "-CAcreateserial", "-out", str(srv_crt))
+    run(
+        "openssl",
+        "req",
+        "-new",
+        "-key",
+        str(srv_key),
+        "-out",
+        str(srv_csr),
+        "-subj",
+        "/CN=192.168.4.1/O=Glasshouse",
+    )
+    run(
+        "openssl",
+        "x509",
+        "-req",
+        "-days",
+        "3650",
+        "-in",
+        str(srv_csr),
+        "-CA",
+        str(ca_crt),
+        "-CAkey",
+        str(ca_key),
+        "-CAcreateserial",
+        "-out",
+        str(srv_crt),
+    )
 
     # Client cert
     run("openssl", "genrsa", "-out", str(cli_key), "4096")
-    run("openssl", "req", "-new", "-key", str(cli_key), "-out", str(cli_csr),
-        "-subj", "/CN=glasshouse-client/O=Glasshouse")
-    run("openssl", "x509", "-req", "-days", "3650",
-        "-in", str(cli_csr), "-CA", str(ca_crt), "-CAkey", str(ca_key),
-        "-CAcreateserial", "-out", str(cli_crt))
+    run(
+        "openssl",
+        "req",
+        "-new",
+        "-key",
+        str(cli_key),
+        "-out",
+        str(cli_csr),
+        "-subj",
+        "/CN=glasshouse-client/O=Glasshouse",
+    )
+    run(
+        "openssl",
+        "x509",
+        "-req",
+        "-days",
+        "3650",
+        "-in",
+        str(cli_csr),
+        "-CA",
+        str(ca_crt),
+        "-CAkey",
+        str(ca_key),
+        "-CAcreateserial",
+        "-out",
+        str(cli_crt),
+    )
 
     # Secure permissions
     for key_file in [ca_key, srv_key, cli_key]:
-        os.chown(f, 0, 0)
+        os.chown(key_file, 0, 0)
         key_file.chmod(0o600)
     for crt_file in [ca_crt, srv_crt, cli_crt]:
-        os.chown(f, 0, 0)
+        os.chown(crt_file, 0, 0)
         crt_file.chmod(0o644)
 
     _export_p12(cli_key, cli_crt, ca_crt)
@@ -135,18 +189,31 @@ def step_certs() -> None:
 
 def _export_p12(cli_key: Path, cli_crt: Path, ca_crt: Path) -> None:
     """Export client cert as PKCS#12 for Android import (no password on P12)."""
-    subprocess.run([
-        "openssl", "pkcs12", "-export",
-        "-inkey", str(cli_key),
-        "-in", str(cli_crt),
-        "-certfile", str(ca_crt),
-        "-out", str(CLIENT_P12),
-        "-passout", "pass:",
-        "-name", "Glasshouse",
-    ], check=True, capture_output=True)
+    subprocess.run(
+        [
+            "openssl",
+            "pkcs12",
+            "-export",
+            "-inkey",
+            str(cli_key),
+            "-in",
+            str(cli_crt),
+            "-certfile",
+            str(ca_crt),
+            "-out",
+            str(CLIENT_P12),
+            "-passout",
+            "pass:",
+            "-name",
+            "Glasshouse",
+        ],
+        check=True,
+        capture_output=True,
+    )
     # Make readable by the non-root user
     try:
         import pwd
+
         uid = pwd.getpwnam(_sudo_user).pw_uid
         os.chown(CLIENT_P12, uid, -1)
     except Exception:

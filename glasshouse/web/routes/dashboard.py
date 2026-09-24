@@ -1,10 +1,11 @@
 """Dashboard routes for detection history and status."""
 
 import logging
+from pathlib import Path
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 from glasshouse.storage import db
 
@@ -18,7 +19,8 @@ async def dashboard(request: Request):
     detections = await db.get_detections(limit=50)
     history = await db.get_device_history(limit=50)
     return templates.TemplateResponse(
-        request, "dashboard.html",
+        request,
+        "dashboard.html",
         {"detections": detections, "history": history},
     )
 

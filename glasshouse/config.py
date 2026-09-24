@@ -12,7 +12,7 @@ def parse_args() -> argparse.Namespace:
         "--debug",
         action="store_true",
         help="Debug mode: bind to 127.0.0.1:8080, no TLS, no mTLS, "
-             "auto-create local dev secret and DB in ./dev_data/",
+        "auto-create local dev secret and DB in ./dev_data/",
     )
     return parser.parse_args()
 

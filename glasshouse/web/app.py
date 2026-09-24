@@ -12,7 +12,15 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from glasshouse import config
-from glasshouse.web.routes import dashboard, filters, devices, vendors, export, settings, scan
+from glasshouse.web.routes import (
+    dashboard,
+    devices,
+    export,
+    filters,
+    scan,
+    settings,
+    vendors,
+)
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +37,7 @@ def create_app() -> FastAPI:
     # mTLS middleware only in production
     if not config.DEBUG:
         from glasshouse.web.auth import MTLSMiddleware
+
         app.add_middleware(MTLSMiddleware)
 
     # Static assets (CSS, minimal JS)

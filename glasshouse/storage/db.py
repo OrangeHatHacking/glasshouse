@@ -17,8 +17,7 @@ import json
 import logging
 import sqlite3
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from glasshouse import config
 
@@ -41,9 +40,7 @@ def _load_key() -> str:
             "Run setup/firstboot.py first."
         )
     except PermissionError:
-        raise RuntimeError(
-            f"Cannot read {SECRET_PATH}. Is this running as root?"
-        )
+        raise RuntimeError(f"Cannot read {SECRET_PATH}. Is this running as root?")
     if not key:
         raise RuntimeError(f"Secret file at {SECRET_PATH} is empty.")
     return key
@@ -142,6 +139,7 @@ def init_db() -> None:
 # block the asyncio event loop.
 # ---------------------------------------------------------------------------
 
+
 async def _run(fn, *args) -> Any:
     loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, fn, *args)
@@ -171,17 +169,17 @@ def _insert_detection_sync(row: dict) -> int:
 
 async def insert_detection(
     mac: str,
-    vendor: Optional[str],
+    vendor: str | None,
     match_type: str,
-    rssi: Optional[int],
-    manufacturer_data: Optional[dict],
-    service_uuids: Optional[list[str]],
-    local_name: Optional[str],
-    tx_power: Optional[int],
-    alias: Optional[str] = None,
-    lat: Optional[float] = None,
-    lon: Optional[float] = None,
-    alt: Optional[float] = None,
+    rssi: int | None,
+    manufacturer_data: dict | None,
+    service_uuids: list[str] | None,
+    local_name: str | None,
+    tx_power: int | None,
+    alias: str | None = None,
+    lat: float | None = None,
+    lon: float | None = None,
+    alt: float | None = None,
 ) -> int:
     row = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -190,7 +188,9 @@ async def insert_detection(
         "vendor": vendor,
         "match_type": match_type,
         "rssi": rssi,
-        "manufacturer_data": json.dumps(manufacturer_data) if manufacturer_data else None,
+        "manufacturer_data": json.dumps(manufacturer_data)
+        if manufacturer_data
+        else None,
         "service_uuids": json.dumps(service_uuids) if service_uuids else None,
         "local_name": local_name,
         "tx_power": tx_power,
@@ -201,7 +201,7 @@ async def insert_detection(
     return await _run(_insert_detection_sync, row)
 
 
-def _upsert_history_sync(mac: str, alias: Optional[str]) -> None:
+def _upsert_history_sync(mac: str, alias: str | None) -> None:
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_connection()
     try:
@@ -221,7 +221,7 @@ def _upsert_history_sync(mac: str, alias: Optional[str]) -> None:
         conn.close()
 
 
-async def upsert_device_history(mac: str, alias: Optional[str] = None) -> None:
+async def upsert_device_history(mac: str, alias: str | None = None) -> None:
     await _run(_upsert_history_sync, mac, alias)
 
 
@@ -277,7 +277,7 @@ async def set_alias(mac: str, alias: str) -> None:
     await _run(_set_alias_sync, mac, alias)
 
 
-def _get_alias_sync(mac: str) -> Optional[str]:
+def _get_alias_sync(mac: str) -> str | None:
     conn = _get_connection()
     try:
         row = conn.execute(
@@ -289,7 +289,7 @@ def _get_alias_sync(mac: str) -> Optional[str]:
         conn.close()
 
 
-async def get_alias(mac: str) -> Optional[str]:
+async def get_alias(mac: str) -> str | None:
     return await _run(_get_alias_sync, mac)
 
 
@@ -340,7 +340,7 @@ async def remove_custom_filter(filter_id: int) -> None:
     await _run(_remove_filter_sync, filter_id)
 
 
-def _get_setting_sync(key: str) -> Optional[str]:
+def _get_setting_sync(key: str) -> str | None:
     conn = _get_connection()
     try:
         row = conn.execute(
@@ -351,7 +351,7 @@ def _get_setting_sync(key: str) -> Optional[str]:
         conn.close()
 
 
-async def get_setting(key: str) -> Optional[str]:
+async def get_setting(key: str) -> str | None:
     return await _run(_get_setting_sync, key)
 
 

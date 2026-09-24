@@ -13,12 +13,12 @@ import asyncio
 import json
 import logging
 import ssl
-from typing import Optional
 
 log = logging.getLogger(__name__)
 
 try:
     import paho.mqtt.client as mqtt_lib
+
     _MQTT_AVAILABLE = True
 except ImportError:
     _MQTT_AVAILABLE = False
@@ -27,7 +27,7 @@ except ImportError:
 
 class MQTTClient:
     def __init__(self):
-        self._client: Optional[object] = None
+        self._client: object | None = None
         self._connected = False
         self._config: dict = {}
 
@@ -35,6 +35,7 @@ class MQTTClient:
         """Read settings from the database."""
         # Import here to avoid circular at module load
         from glasshouse.storage.db import _get_setting_sync
+
         return {
             "enabled": _get_setting_sync("mqtt_enabled") == "1",
             "broker": _get_setting_sync("mqtt_broker") or "",
@@ -88,14 +89,16 @@ class MQTTClient:
     async def publish(self, event: dict) -> None:
         if not self._connected or not self._client:
             return
-        payload = json.dumps({
-            "mac": event.get("mac"),
-            "vendor": event.get("vendor"),
-            "alias": event.get("alias"),
-            "rssi": event.get("rssi"),
-            "match_type": event.get("match_type"),
-            "category": event.get("category"),
-        })
+        payload = json.dumps(
+            {
+                "mac": event.get("mac"),
+                "vendor": event.get("vendor"),
+                "alias": event.get("alias"),
+                "rssi": event.get("rssi"),
+                "match_type": event.get("match_type"),
+                "category": event.get("category"),
+            }
+        )
         topic = self._config.get("topic", "glasshouse/detection")
         try:
             self._client.publish(topic, payload, qos=1)

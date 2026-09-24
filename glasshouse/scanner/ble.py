@@ -14,17 +14,17 @@ silently with a softer alert.
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Callable, Optional
 
 from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
+from glasshouse import storage
 from glasshouse.scanner.fingerprint import build_fingerprint, identify_by_fingerprint
 from glasshouse.scanner.matcher import MatchResult, match_custom_filters, match_vendor
 from glasshouse.scanner.oui_lookup import lookup_oui
-from glasshouse import storage
 
 log = logging.getLogger(__name__)
 
@@ -46,11 +46,16 @@ def get_nearby_devices() -> list[dict]:
     sorted by RSSI (strongest first). Auto-evicts stale entries.
     """
     now = datetime.now(timezone.utc).timestamp()
-    stale = [mac for mac, d in _nearby_devices.items()
-             if now - d["last_seen"] > NEARBY_TTL_SECONDS]
+    stale = [
+        mac
+        for mac, d in _nearby_devices.items()
+        if now - d["last_seen"] > NEARBY_TTL_SECONDS
+    ]
     for mac in stale:
         del _nearby_devices[mac]
-    return sorted(_nearby_devices.values(), key=lambda d: d.get("rssi") or -999, reverse=True)
+    return sorted(
+        _nearby_devices.values(), key=lambda d: d.get("rssi") or -999, reverse=True
+    )
 
 
 def _update_nearby(device: BLEDevice, adv: AdvertisementData) -> None:
@@ -120,7 +125,7 @@ async def _handle_advertisement(
         log.debug("Fingerprint hint: %s for %s", fp_hint, mac)
 
     # Primary match: vendor DB
-    result: Optional[MatchResult] = match_vendor(
+    result: MatchResult | None = match_vendor(
         mac=mac,
         manufacturer_data=adv.manufacturer_data or {},
         service_uuids=[str(u) for u in (adv.service_uuids or [])],
@@ -233,7 +238,9 @@ async def run_scanner(stop_event: asyncio.Event) -> None:
                 if now - last_filter_reload > 60:
                     try:
                         custom_filters = await storage.db.get_custom_filters()
-                        log.debug("Custom filters reloaded: %d entries", len(custom_filters))
+                        log.debug(
+                            "Custom filters reloaded: %d entries", len(custom_filters)
+                        )
                     except Exception as e:
                         log.warning("Failed to reload custom filters: %s", e)
                     last_filter_reload = now

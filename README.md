@@ -145,7 +145,7 @@ which is required to passively capture WiFi probe requests from nearby devices.
 
 **Certainty level: moderate.** Modern iOS and Android randomise MAC addresses in
 probe requests, reducing identification accuracy. However, some devices
-(especially older ones, IoT devices, and some law enforcement equipment) still
+(especially older ones) still
 use their real MAC in probes.
 
 **Implementation approach:**

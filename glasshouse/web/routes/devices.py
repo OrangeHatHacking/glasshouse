@@ -1,10 +1,11 @@
 """Device alias management routes."""
 
 import logging
-from fastapi import APIRouter, Request, Form
+from pathlib import Path
+
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 from glasshouse.storage import db
 
@@ -16,9 +17,7 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 @router.get("/", response_class=HTMLResponse)
 async def devices_page(request: Request):
     history = await db.get_device_history(limit=100)
-    return templates.TemplateResponse(
-        request, "devices.html", {"history": history}
-    )
+    return templates.TemplateResponse(request, "devices.html", {"history": history})
 
 
 @router.post("/alias")

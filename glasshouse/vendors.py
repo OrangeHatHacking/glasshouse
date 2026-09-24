@@ -15,7 +15,6 @@ Filter types:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -45,10 +44,13 @@ class NameFilter:
 @dataclass(frozen=True)
 class CompositeFilter:
     """All conditions must be present in the same advertisement."""
+
     type: str = "composite"
-    cid: Optional[int] = None
-    uuid: Optional[int] = None
-    names: tuple[str, ...] = field(default_factory=tuple)  # any one name match sufficient
+    cid: int | None = None
+    uuid: int | None = None
+    names: tuple[str, ...] = field(
+        default_factory=tuple
+    )  # any one name match sufficient
 
 
 @dataclass
@@ -62,7 +64,6 @@ class Vendor:
 
 
 VENDORS: list[Vendor] = [
-
     # -------------------------------------------------------------------------
     # Ring / Amazon
     # Source: IEEE OUI registry, Ring LLC registrations
@@ -91,7 +92,6 @@ VENDORS: list[Vendor] = [
             OUIFilter(oui="CC:3B:FB"),
         ],
     ),
-
     # -------------------------------------------------------------------------
     # DJI
     # Source: IEEE OUI registry
@@ -120,7 +120,6 @@ VENDORS: list[Vendor] = [
             OUIFilter(oui="F8:40:68"),
         ],
     ),
-
     # -------------------------------------------------------------------------
     # Axon Enterprise (formerly TASER International)
     # Body cameras: Axon Body 2, 3, 4; Fleet dash cams
@@ -145,7 +144,6 @@ VENDORS: list[Vendor] = [
             CompositeFilter(cid=0x034D, uuid=0xFC81),
         ],
     ),
-
     # -------------------------------------------------------------------------
     # Meta / Ray-Ban smart glasses
     # Ray-Ban Stories, Ray-Ban Meta (Wayfarer, Oakley Meta)
@@ -176,7 +174,6 @@ VENDORS: list[Vendor] = [
             ),
         ],
     ),
-
     # -------------------------------------------------------------------------
     # Sepura TETRA radios
     # SC21, SC2020, STP9000 series - used by police and emergency services
@@ -198,7 +195,6 @@ VENDORS: list[Vendor] = [
             # advertisement captures from SC21 hardware are available.
         ],
     ),
-
     # -------------------------------------------------------------------------
     # Motorola Solutions
     # TETRA/P25/DMR radios, MOTOTRBO series, APX series
@@ -220,7 +216,6 @@ VENDORS: list[Vendor] = [
             OUIFilter(oui="00:0A:28"),
         ],
     ),
-
 ]
 
 
@@ -229,7 +224,7 @@ def get_enabled_vendors() -> list[Vendor]:
     return [v for v in VENDORS if v.enabled]
 
 
-def get_vendor_by_name(name: str) -> Optional[Vendor]:
+def get_vendor_by_name(name: str) -> Vendor | None:
     """Case-insensitive vendor lookup."""
     name_lower = name.lower()
     return next((v for v in VENDORS if v.name.lower() == name_lower), None)

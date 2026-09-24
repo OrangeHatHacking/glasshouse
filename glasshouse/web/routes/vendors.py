@@ -1,10 +1,11 @@
 """Vendor DB view and enable/disable routes."""
 
 import logging
+from pathlib import Path
+
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 import glasshouse.vendors as vendor_db
 
@@ -16,7 +17,8 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 @router.get("/", response_class=HTMLResponse)
 async def vendors_page(request: Request):
     return templates.TemplateResponse(
-        request, "vendors.html",
+        request,
+        "vendors.html",
         {"vendors": vendor_db.VENDORS},
     )
 
@@ -28,8 +30,6 @@ async def toggle_vendor(vendor_name: str):
         return {"error": f"Vendor '{vendor_name}' not found"}
     for i, v in enumerate(vendor_db.VENDORS):
         if v.name.lower() == vendor_name.lower():
-            vendor_db.VENDORS[i] = type(v)(
-                **{**v.__dict__, "enabled": not v.enabled}
-            )
+            vendor_db.VENDORS[i] = type(v)(**{**v.__dict__, "enabled": not v.enabled})
             break
     return RedirectResponse(url="/vendors/", status_code=303)

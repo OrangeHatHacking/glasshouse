@@ -16,7 +16,6 @@ To activate:
 
 import logging
 import os
-from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +26,7 @@ def is_available() -> bool:
     return GPS_ENABLED
 
 
-async def get_current_position() -> Optional[dict]:
+async def get_current_position() -> dict | None:
     """
     Returns the current GPS fix as:
       {"lat": float, "lon": float, "alt": float, "accuracy": float}

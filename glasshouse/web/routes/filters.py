@@ -1,10 +1,11 @@
 """Custom filter management routes."""
 
 import logging
-from fastapi import APIRouter, Request, Form
+from pathlib import Path
+
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 from glasshouse.storage import db
 
@@ -18,9 +19,7 @@ VALID_TYPES = {"oui", "mac", "cid", "uuid", "name"}
 @router.get("/", response_class=HTMLResponse)
 async def filters_page(request: Request):
     filters = await db.get_custom_filters()
-    return templates.TemplateResponse(
-        request, "filters.html", {"filters": filters}
-    )
+    return templates.TemplateResponse(request, "filters.html", {"filters": filters})
 
 
 @router.post("/add")

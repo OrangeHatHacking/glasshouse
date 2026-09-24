@@ -16,16 +16,14 @@ Match priority (first match wins per vendor):
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 from glasshouse.vendors import (
     VENDORS,
-    CompositeFilter,
     CIDFilter,
+    CompositeFilter,
     NameFilter,
     OUIFilter,
     UUIDFilter,
-    Vendor,
 )
 
 log = logging.getLogger(__name__)
@@ -35,8 +33,8 @@ log = logging.getLogger(__name__)
 class MatchResult:
     vendor: str
     category: str
-    match_type: str       # 'oui' | 'cid' | 'uuid' | 'name' | 'composite' | 'custom'
-    matched_value: str    # human-readable description of what fired
+    match_type: str  # 'oui' | 'cid' | 'uuid' | 'name' | 'composite' | 'custom'
+    matched_value: str  # human-readable description of what fired
     cooldown_seconds: int
 
 
@@ -82,7 +80,7 @@ def _match_composite(
     f: CompositeFilter,
     cids: set[int],
     uuids: set[int],
-    local_name: Optional[str],
+    local_name: str | None,
 ) -> bool:
     """
     Composite match: CID AND UUID must both be present (if specified),
@@ -109,8 +107,8 @@ def match_vendor(
     mac: str,
     manufacturer_data: dict[int, bytes],
     service_uuids: list[str],
-    local_name: Optional[str],
-) -> Optional[MatchResult]:
+    local_name: str | None,
+) -> MatchResult | None:
     """
     Test a BLE advertisement against all enabled vendor filters.
     Returns the first MatchResult, or None.
@@ -126,9 +124,13 @@ def match_vendor(
         # Sort filters: composite first, then oui, cid, uuid, name
         ordered = sorted(
             vendor.filters,
-            key=lambda f: {"composite": 0, "oui": 1, "cid": 2, "uuid": 3, "name": 4}.get(
-                f.type, 9
-            ),
+            key=lambda f: {
+                "composite": 0,
+                "oui": 1,
+                "cid": 2,
+                "uuid": 3,
+                "name": 4,
+            }.get(f.type, 9),
         )
 
         for f in ordered:
@@ -139,8 +141,8 @@ def match_vendor(
                         category=vendor.category,
                         match_type="composite",
                         matched_value=f"CID={hex(f.cid) if f.cid else 'any'} "
-                                      f"UUID={hex(f.uuid) if f.uuid else 'any'} "
-                                      f"names={f.names}",
+                        f"UUID={hex(f.uuid) if f.uuid else 'any'} "
+                        f"names={f.names}",
                         cooldown_seconds=vendor.alert_cooldown_seconds,
                     )
 
@@ -191,9 +193,9 @@ def match_custom_filters(
     mac: str,
     manufacturer_data: dict[int, bytes],
     service_uuids: list[str],
-    local_name: Optional[str],
+    local_name: str | None,
     custom_filters: list[dict],
-) -> Optional[MatchResult]:
+) -> MatchResult | None:
     """
     Test against user-defined filters from the DB.
     Each filter is a dict: {type, value, description}.

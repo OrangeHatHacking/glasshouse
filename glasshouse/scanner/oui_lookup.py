@@ -45,7 +45,9 @@ def _load_db() -> dict[str, str]:
                         db[key] = name
         log.info("OUI database loaded: %d entries", len(db))
     except FileNotFoundError:
-        log.warning("OUI database not found at %s - lookups will return Unknown", _OUI_FILE)
+        log.warning(
+            "OUI database not found at %s - lookups will return Unknown", _OUI_FILE
+        )
     except Exception as e:
         log.warning("Failed to load OUI database: %s", e)
 

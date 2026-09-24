@@ -1,10 +1,11 @@
 """Routes for MQTT and hardware settings."""
 
 import logging
-from fastapi import APIRouter, Request, Form
+from pathlib import Path
+
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pathlib import Path
 
 from glasshouse.storage import db
 
@@ -34,9 +35,7 @@ async def settings_page(request: Request):
     if current.get("mqtt_password"):
         current["mqtt_password_set"] = True
         current["mqtt_password"] = ""
-    return templates.TemplateResponse(
-        request, "settings.html", {"settings": current}
-    )
+    return templates.TemplateResponse(request, "settings.html", {"settings": current})
 
 
 @router.post("/save")
