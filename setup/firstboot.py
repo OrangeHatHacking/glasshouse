@@ -10,7 +10,9 @@ Generates:
 Must be run as root. Safe to re-run.
 """
 
+import argparse
 import os
+import pwd
 import secrets
 import string
 import subprocess
@@ -27,13 +29,39 @@ CERT_DIR = CONF_DIR / "certs"
 VAR_DIR = Path("/var/lib/glasshouse")
 SECRET_FILE = CONF_DIR / "secret"
 AP_CONF = CONF_DIR / "ap.conf"
-CLIENT_P12 = Path("/home/pi/glasshouse-client.p12")
+parser = argparse.ArgumentParser(description="Glasshouse first boot setup")
+parser.add_argument("--user", dest="operator_user", help="Pi login user")
+args = parser.parse_args()
 
-# Try to find the home dir of the non-root user who invoked sudo
-_sudo_user = os.environ.get("SUDO_USER", "pi")
-_user_home = Path(f"/home/{_sudo_user}")
-if _user_home.exists():
-    CLIENT_P12 = _user_home / "glasshouse-client.p12"
+if args.operator_user:
+    _sudo_user = args.operator_user
+else:
+    _sudo_user = os.environ.get("SUDO_USER")
+    if not _sudo_user or _sudo_user == "root":
+        try:
+            pwd.getpwnam("pi")
+            _sudo_user = "pi"
+        except KeyError:
+            users = sorted(
+                entry
+                for entry in pwd.getpwall()
+                if entry.pw_uid >= 1000
+                and entry.pw_shell not in ("/usr/sbin/nologin", "/bin/false")
+            )
+            if users:
+                _sudo_user = users[0].pw_name
+
+if not _sudo_user:
+    print("ERROR: Could not detect an operator user. Use --user USER.")
+    sys.exit(1)
+
+try:
+    _user_home = Path(pwd.getpwnam(_sudo_user).pw_dir)
+except KeyError:
+    print(f"ERROR: operator user '{_sudo_user}' does not exist")
+    sys.exit(1)
+
+CLIENT_P12 = _user_home / "glasshouse-client.p12"
 
 
 def _secure_dir(path: Path) -> None:

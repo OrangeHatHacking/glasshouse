@@ -14,28 +14,62 @@ Managed via a hidden WPA3 access point with mutual-TLS secured web console acces
 - Buzzer on GPIO 18 (optional)
 - Any USB power bank
 
-## Quick start
+## Setup
+
+1. Flash Raspberry Pi OS Lite 64-bit with Raspberry Pi Imager. Set WiFi,
+   country, SSH, and a username.
+2. Boot the Pi on that network and connect:
 
 ```bash
-git clone https://github.com/yourusername/glasshouse
-cd glasshouse
-sudo python3 setup/firstboot.py
+ssh <username>@glasshouse.local
 ```
 
-First boot:
-- Generates mTLS certificates (CA + server + client)
-- Generates random WPA3 AP password
-- Configures hostapd, dnsmasq, nftables
-- Enables glasshouse systemd service
-- Prints AP credentials and cert import instructions
+3. Clone the repo and run the installer:
+
+```bash
+git clone <repository-url>
+cd glasshouse
+sudo bash setup/install.sh
+```
+
+Use `--user <username>` if the username isn't `pi`. The installer runs first-boot
+setup, prints the certificate copy command, waits for confirmation, and starts
+the private AP. The Pi needs internet during installation.
 
 ## Connecting from Android / GrapheneOS
 
-1. Transfer `glasshouse-client.p12` from `/home/pi/` to your phone
+1. Transfer `glasshouse-client.p12` to your phone.
 2. Settings -> Security -> Encryption & credentials -> Install certificate -> VPN & app user certificate
-3. Connect to the Glasshouse AP (SSID printed on first boot)
-4. Open `https://192.168.4.1` in browser
-5. Select the installed certificate when prompted
+3. Connect to the Glasshouse AP.
+4. Open `https://192.168.4.1`.
+5. Select the Glasshouse certificate when prompted.
+
+## SSH access
+
+The installer uses `pi` by default. To use another existing user:
+
+```bash
+sudo bash setup/install.sh --user <username>
+sudo python3 setup/firstboot.py --user <username>
+```
+
+On termux:
+The commands below use `pi`; replace it with the selected user when `--user` is used.
+
+```bash
+pkg install openssh
+ssh-keygen -t ed25519 -a 100 -f ~/.ssh/glasshouse_ed25519
+```
+
+```bash
+cat ~/.ssh/glasshouse_ed25519.pub | \
+  ssh pi@<initial-ip> \
+  'cat >> ~/.ssh/authorized_keys'
+```
+
+```bash
+ssh -i ~/.ssh/glasshouse_ed25519 pi@192.168.4.1
+```
 
 ## Detected vendors
 
@@ -59,7 +93,8 @@ Web UI -> Filters -> Add filter. Supports:
 - Device name substring
 - Composite (multiple conditions, AND logic)
 
-## Future expansion
+<details>
+<summary>Future expansion</summary>
 
 ### GPS logging (stubs in place)
 
@@ -171,3 +206,5 @@ and GND. Set `buzzer_enabled` to true in web UI settings.
 ## License
 
 GPL-3.0
+
+</details>
