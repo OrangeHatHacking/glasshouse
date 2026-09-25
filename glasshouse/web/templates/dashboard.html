@@ -64,7 +64,7 @@
       <td>{{ d.mac }}</td>
       <td>{{ d.local_name or '—' }}</td>
       <td><span class="badge badge-{{ d.match_type.split(':')[0] if d.match_type else 'custom' }}">{{ d.vendor or '—' }}</span></td>
-      <td class="match-label" style="color:var(--muted);font-size:11px;" title="{{ d.match_type }}">{{ d.match_label|safe }}</td>
+      <td class="match-label" style="color:var(--muted);font-size:11px;" title="{{ d.match_type }}">{{ d.match_label }}</td>
     </tr>
     <tr class="detection-details-row">
       <td colspan="5">

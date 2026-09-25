@@ -14,6 +14,8 @@ middleware should never see an uncertified request, but it checks anyway.
 """
 
 import logging
+import hmac
+import secrets
 from collections.abc import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -21,6 +23,14 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 log = logging.getLogger(__name__)
+CSRF_TOKEN = secrets.token_urlsafe(32)
+
+
+def verify_csrf(token: str) -> None:
+    if not hmac.compare_digest(token, CSRF_TOKEN):
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
 
 
 class MTLSMiddleware(BaseHTTPMiddleware):

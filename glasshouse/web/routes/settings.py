@@ -8,10 +8,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from glasshouse.storage import db
+from glasshouse.web.auth import CSRF_TOKEN, verify_csrf
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/settings")
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
+templates.env.globals["csrf_token"] = CSRF_TOKEN
 
 SETTINGS_KEYS = [
     "mqtt_enabled",
@@ -40,6 +42,7 @@ async def settings_page(request: Request):
 
 @router.post("/save")
 async def save_settings(
+    csrf_token: str = Form(...),
     mqtt_enabled: str = Form("off"),
     mqtt_broker: str = Form(""),
     mqtt_port: str = Form("1883"),
@@ -50,6 +53,7 @@ async def save_settings(
     led_enabled: str = Form("on"),
     buzzer_enabled: str = Form("off"),
 ):
+    verify_csrf(csrf_token)
     await db.set_setting("mqtt_enabled", "1" if mqtt_enabled == "on" else "0")
     await db.set_setting("mqtt_broker", mqtt_broker.strip())
     await db.set_setting("mqtt_port", mqtt_port.strip() or "1883")

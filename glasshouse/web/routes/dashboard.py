@@ -43,7 +43,7 @@ def _match_label(match_type: str | None) -> str:
     if match_type in labels:
         return labels[match_type]
     if match_type and match_type.startswith("custom:"):
-        return "Custom<br>" + match_type.split(":", 1)[1].upper()
+        return "Custom " + match_type.split(":", 1)[1].upper()
     return match_type or "Unknown"
 
 

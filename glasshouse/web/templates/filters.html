@@ -6,6 +6,7 @@
   These are in addition to the built-in vendor database.
 </p>
 <form method="post" action="/filters/add" style="margin-bottom:24px;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <div class="field">
     <label>Type</label>
     <select name="type">
@@ -41,6 +42,7 @@
       <td style="color:var(--muted);">{{ f.description or '' }}</td>
       <td>
         <form class="inline" method="post" action="/filters/remove/{{ f.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button class="danger" type="submit">Remove</button>
         </form>
       </td>

@@ -36,6 +36,7 @@
       <td style="color:var(--muted);font-size:12px;">{{ v.description }}</td>
       <td>
         <form class="inline" method="post" action="/vendors/toggle/{{ row.index }}" onclick="event.stopPropagation()">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button type="submit" class="{% if not row.enabled %}danger{% endif %}">
             {{ 'On' if row.enabled else 'Off' }}
           </button>
@@ -55,6 +56,7 @@
               <td>{{ signature.label }}</td>
               <td>
                 <form class="inline" method="post" action="/vendors/signature/{{ row.index }}/{{ signature.index }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                   <button type="submit" class="{% if not signature.enabled %}danger{% endif %}">
                     {{ 'On' if signature.enabled else 'Off' }}
                   </button>
