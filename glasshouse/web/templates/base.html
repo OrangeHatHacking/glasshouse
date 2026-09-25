@@ -27,10 +27,14 @@
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 10px 16px;
+      overflow-x: auto;
+    }
+    .nav-links {
       display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
+      gap: 14px;
+      flex-wrap: nowrap;
       align-items: center;
+      min-width: max-content;
     }
     nav a {
       color: var(--muted);
@@ -44,7 +48,14 @@
       color: var(--accent);
       font-weight: bold;
       font-size: 14px;
-      margin-right: 8px;
+      display: block;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    nav .download-icon {
+      width: 15px;
+      height: 15px;
+      vertical-align: -2px;
     }
     main { padding: 16px; max-width: 900px; }
     h2 {
@@ -129,12 +140,18 @@
 <body>
   <nav>
     <span class="brand">GLASSHOUSE</span>
-    <a href="/">Dashboard</a>
-    <a href="/scan/">Scan</a>
-    <a href="/vendors/">Vendors</a>
-    <a href="/filters/">Filters</a>
-    <a href="/export/detections.json">Export</a>
-    <a href="/settings/">Settings</a>
+    <div class="nav-links">
+      <a href="/">Dashboard</a>
+      <a href="/scan/">Scan</a>
+      <a href="/vendors/">Vendors</a>
+      <a href="/filters/">Filters</a>
+      <a href="/settings/">Settings</a>
+      <a href="/export/detections.json" aria-label="Download Detection Log" title="Download Detection Log">
+        <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/>
+        </svg>
+      </a>
+    </div>
   </nav>
   <main>
     {% block content %}{% endblock %}

@@ -13,8 +13,6 @@
   .scan-table th:nth-child(4) { width: 14%; }
   .scan-table td { overflow-wrap: anywhere; word-break: break-word; }
   .device-row { cursor: pointer; }
-  .device-details-row { display: none; }
-  .device-details-row.visible { display: table-row; }
   .device-details-row > td {
     padding: 4px 8px 8px 8px;
     background: var(--surface);
@@ -23,17 +21,46 @@
   }
   @media (max-width: 700px) {
     .scan-table { min-width: 0; }
-    .scan-table th:nth-child(1),
-    .scan-table td:nth-child(1) { font-size: 10px; }
   }
 </style>
-<div id="scan-content"></div>
+
+<section id="matched-section" style="display:none;">
+  <h2 style="color:var(--accent);border-color:var(--accent);">Known OUI Matches (<span class="count"></span>)</h2>
+  <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
+    The MAC prefix matches an enabled OUI signature. This is not a confirmed detection.
+  </p>
+  <div class="scan-table-wrap"><table class="scan-table"><thead><tr>
+    <th>MAC</th><th>Name</th><th>Manufacturer</th><th>RSSI</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="interesting-section" style="display:none;">
+  <h2>Named Unknown Devices (<span class="count"></span>)</h2>
+  <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
+    Unidentified manufacturer but advertising a device name.
+  </p>
+  <div class="scan-table-wrap"><table class="scan-table"><thead><tr>
+    <th>MAC</th><th>Name</th><th>Manufacturer</th><th>RSSI</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<details id="all-other-devices" style="display:none;margin-top:20px;">
+  <summary style="color:var(--muted);cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;">
+    All other devices (<span class="count"></span>) - click to expand
+  </summary>
+  <div class="scan-table-wrap" style="margin-top:8px;"><table class="scan-table"><thead><tr>
+    <th>MAC</th><th>Name</th><th>Manufacturer</th><th>RSSI</th>
+  </tr></thead><tbody></tbody></table></div>
+</details>
+
+<p id="scan-empty" class="empty">No BLE devices detected. Is Bluetooth enabled?</p>
+
 <script>
-const scanContent = document.getElementById("scan-content");
-let latestScan = null;
-let lastStructureKey = "";
-let scanPaused = false;
-let openDeviceMacs = new Set();
+const sections = {
+  matched: document.getElementById("matched-section"),
+  interesting: document.getElementById("interesting-section"),
+  everything_else: document.getElementById("all-other-devices")
+};
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(char) {
@@ -41,128 +68,78 @@ function escapeHtml(value) {
   });
 }
 
-function deviceTable(devices) {
-  return `<div class="scan-table-wrap"><table class="scan-table">
-    <thead><tr>
-      <th>MAC</th><th>Name</th><th>Manufacturer</th><th>RSSI</th>
-    </tr></thead>
-    <tbody>${devices.map(function(device) {
-      const rssi = device.rssi ?? "—";
-      const rssiClass = device.rssi > -60 ? "rssi-strong" :
-        device.rssi > -80 ? "rssi-medium" : "rssi-weak";
-      const isOpen = openDeviceMacs.has(device.mac);
-      return `<tr class="device-row" data-mac="${escapeHtml(device.mac)}" onclick="toggleDeviceDetails(this)">
-        <td style="font-size:11px;">${escapeHtml(device.mac)}</td>
-        <td>${escapeHtml(device.name || "—")}</td>
-        <td><span style="color:var(--${device.manufacturer === "Unknown" || device.manufacturer === "Randomised" ? "muted" : "accent"});">${escapeHtml(device.manufacturer)}</span></td>
-        <td class="scan-rssi ${rssiClass}">${escapeHtml(rssi)}</td>
-      </tr>
-      <tr class="device-details-row${isOpen ? " visible" : ""}" data-detail-mac="${escapeHtml(device.mac)}">
-        <td colspan="4">
-          Company IDs: ${escapeHtml((device.company_ids || []).join(", ") || "—")}<br>
-          Service UUIDs: ${escapeHtml((device.service_uuids || []).join(", ") || "—")}
-        </td>
-      </tr>`;
-    }).join("")}</tbody>
-  </table></div>`;
+function rssiClass(rssi) {
+  return rssi > -60 ? "rssi-strong" : rssi > -80 ? "rssi-medium" : "rssi-weak";
 }
 
-function structureKey(data) {
-  return JSON.stringify([
-    ...data.matched,
-    ...data.interesting,
-    ...data.everything_else,
-  ].map(function(device) {
-    return {
-      mac: device.mac,
-      name: device.name,
-      manufacturer: device.manufacturer,
-      company_ids: device.company_ids,
-      service_uuids: device.service_uuids,
-    };
-  }).sort(function(a, b) { return a.mac.localeCompare(b.mac); }));
+function deviceRows(device) {
+  const mac = escapeHtml(device.mac);
+  return `<tr class="device-row" data-mac="${mac}" onclick="toggleDeviceDetails(this)">
+    <td style="font-size:11px;">${mac}</td>
+    <td>${escapeHtml(device.name || "—")}</td>
+    <td>${escapeHtml(device.manufacturer)}</td>
+    <td class="scan-rssi ${rssiClass(device.rssi)}">${escapeHtml(device.rssi ?? "—")}</td>
+  </tr>
+  <tr class="device-details-row" data-detail-mac="${mac}" hidden>
+    <td colspan="4">
+      Company IDs: <span class="company-ids">${escapeHtml((device.company_ids || []).join(", ") || "—")}</span><br>
+      Service UUIDs: <span class="service-uuids">${escapeHtml((device.service_uuids || []).join(", ") || "—")}</span>
+    </td>
+  </tr>`;
 }
 
-function updateRssi(data) {
-  const devices = [...data.matched, ...data.interesting, ...data.everything_else];
-  const byMac = new Map(devices.map(function(device) { return [device.mac, device]; }));
-  scanContent.querySelectorAll("tr.device-row[data-mac]").forEach(function(row) {
-    const device = byMac.get(row.dataset.mac);
-    if (!device) return;
-    const cell = row.querySelector(".scan-rssi");
-    if (!cell) return;
-    cell.textContent = device.rssi ?? "—";
-    cell.className = "scan-rssi " + (device.rssi > -60 ? "rssi-strong" :
-      device.rssi > -80 ? "rssi-medium" : "rssi-weak");
+function updateRow(row, device) {
+  row.children[0].textContent = device.mac;
+  row.children[1].textContent = device.name || "—";
+  row.children[2].textContent = device.manufacturer;
+  row.children[3].textContent = device.rssi ?? "—";
+  row.children[3].className = "scan-rssi " + rssiClass(device.rssi);
+  const details = row.nextElementSibling;
+  details.querySelector(".company-ids").textContent =
+    (device.company_ids || []).join(", ") || "—";
+  details.querySelector(".service-uuids").textContent =
+    (device.service_uuids || []).join(", ") || "—";
+}
+
+function updateSection(section, devices) {
+  section.style.display = devices.length ? "" : "none";
+  section.querySelector(".count").textContent = devices.length;
+  const body = section.querySelector("tbody");
+  const existing = new Map(Array.from(body.querySelectorAll(".device-row"))
+    .map(function(row) { return [row.dataset.mac, row]; }));
+  const seen = new Set();
+
+  devices.forEach(function(device) {
+    seen.add(device.mac);
+    const row = existing.get(device.mac);
+    if (row) updateRow(row, device);
+    else body.insertAdjacentHTML("beforeend", deviceRows(device));
   });
-}
 
-function renderScan(data, wasOpen) {
-  openDeviceMacs = new Set(Array.from(
-    scanContent.querySelectorAll(".device-details-row.visible")
-  ).map(function(row) { return row.dataset.detailMac; }));
-  const scrollLefts = Array.from(scanContent.querySelectorAll(".scan-table-wrap"))
-    .map(function(wrapper) { return wrapper.scrollLeft; });
-  let html = "";
-  if (data.matched.length) {
-    html += `<h2 style="color:var(--accent);border-color:var(--accent);">Known OUI Matches (${data.matched.length})</h2>
-      <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">The MAC prefix matches an enabled OUI signature. This is not a confirmed detection.</p>
-      ${deviceTable(data.matched)}`;
-  }
-  if (data.interesting.length) {
-    html += `<h2>Named Unknown Devices (${data.interesting.length})</h2>
-      <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">Unidentified manufacturer but advertising a device name.</p>
-      ${deviceTable(data.interesting)}`;
-  }
-  if (data.everything_else.length) {
-    html += `<details id="all-other-devices" style="margin-top:20px;">
-      <summary style="color:var(--muted);cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;">All other devices (${data.everything_else.length}) - click to expand</summary>
-      <div style="margin-top:8px;">${deviceTable(data.everything_else)}</div>
-    </details>`;
-  }
-  if (!html) html = '<p class="empty">No BLE devices detected. Is Bluetooth enabled?</p>';
-  scanContent.innerHTML = html;
-  scanContent.querySelectorAll(".scan-table-wrap").forEach(function(wrapper, index) {
-    wrapper.scrollLeft = scrollLefts[index] || 0;
+  existing.forEach(function(row, mac) {
+    if (!seen.has(mac)) {
+      row.nextElementSibling.remove();
+      row.remove();
+    }
   });
-  const details = document.getElementById("all-other-devices");
-  if (details && wasOpen) details.open = true;
 }
 
 function toggleDeviceDetails(row) {
-  const details = row.nextElementSibling;
-  const mac = row.dataset.mac;
-  const open = details.classList.toggle("visible");
-  if (open) openDeviceMacs.add(mac);
-  else openDeviceMacs.delete(mac);
+  row.nextElementSibling.hidden = !row.nextElementSibling.hidden;
+}
+
+function renderScan(data) {
+  updateSection(sections.matched, data.matched);
+  updateSection(sections.interesting, data.interesting);
+  updateSection(sections.everything_else, data.everything_else);
+  document.getElementById("scan-empty").style.display =
+    data.matched.length || data.interesting.length || data.everything_else.length
+      ? "none" : "";
 }
 
 const scanStream = new EventSource("/scan/events");
 scanStream.onmessage = function(event) {
-  const details = document.getElementById("all-other-devices");
-  latestScan = JSON.parse(event.data);
-  if (scanPaused) return;
-  const key = structureKey(latestScan);
-  if (key === lastStructureKey) {
-    updateRssi(latestScan);
-    return;
-  }
-  renderScan(latestScan, details && details.open);
-  lastStructureKey = key;
+  renderScan(JSON.parse(event.data));
 };
-
-scanContent.addEventListener("click", function(event) {
-  if (!event.target.closest("summary") && !event.target.closest(".device-row")) return;
-  setTimeout(function() {
-    scanPaused = Boolean(
-      scanContent.querySelector("details[open], .device-details-row.visible")
-    );
-    if (!scanPaused && latestScan) {
-      lastStructureKey = "";
-      renderScan(latestScan, false);
-      lastStructureKey = structureKey(latestScan);
-    }
-  }, 0);
-});
 </script>
 {% endblock %}

@@ -21,12 +21,19 @@
 {% if detections %}
 <style>
   .detection-table { width: 100%; table-layout: fixed; }
-  .detection-table th:nth-child(1) { width: 20%; }
-  .detection-table th:nth-child(2) { width: 23%; }
+  .detection-table th:nth-child(1) { width: 18%; }
+  .detection-table th:nth-child(2) { width: 22%; }
   .detection-table th:nth-child(3) { width: 22%; }
-  .detection-table th:nth-child(4) { width: 22%; }
-  .detection-table th:nth-child(5) { width: 13%; }
+  .detection-table th:nth-child(4) { width: 23%; }
+  .detection-table th:nth-child(5) { width: 15%; }
+  .detection-table th:nth-child(4),
+  .detection-table td:nth-child(4),
+  .detection-table th:nth-child(5),
+  .detection-table td:nth-child(5) { text-align: center; }
   .detection-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .detection-table .match-label { white-space: normal; }
+  .detection-time { white-space: nowrap; line-height: 1.35; }
+  .detection-time .date { color: var(--muted); font-size: 10px; }
   .detection-row { cursor: pointer; }
   .detection-details-row { display: none; }
   .detection-details-row.visible { display: table-row; }
@@ -40,7 +47,7 @@
 <table class="detection-table">
   <thead>
     <tr>
-      <th>{{ 'First seen' if sort == 'first_seen' else 'Last seen' }}</th>
+      <th>{{ 'First' if sort == 'first_seen' else 'Last' }}<br>seen</th>
       <th>MAC</th>
       <th>Name</th>
       <th>Vendor</th>
@@ -50,18 +57,19 @@
   <tbody>
     {% for d in detections %}
     <tr class="detection-row" onclick="toggleDetectionDetails(this)">
-      <td style="color:var(--muted);font-size:11px;" title="{{ d.first_seen if sort == 'first_seen' else d.last_seen }}">
-        {{ (d.first_seen if sort == 'first_seen' else d.last_seen)[:16].replace('T', ' ') }}
+      <td class="detection-time" title="{{ d.first_seen if sort == 'first_seen' else d.last_seen }}">
+        <span>{{ d.first_time if sort == 'first_seen' else d.last_time }}</span><br>
+        <span class="date">{{ d.first_date if sort == 'first_seen' else d.last_date }}</span>
       </td>
       <td>{{ d.mac }}</td>
       <td>{{ d.local_name or '—' }}</td>
       <td><span class="badge badge-{{ d.match_type.split(':')[0] if d.match_type else 'custom' }}">{{ d.vendor or '—' }}</span></td>
-      <td style="color:var(--muted);font-size:11px;">{{ d.match_type }}</td>
+      <td class="match-label" style="color:var(--muted);font-size:11px;" title="{{ d.match_type }}">{{ d.match_label|safe }}</td>
     </tr>
     <tr class="detection-details-row">
       <td colspan="5">
-        First seen: {{ d.first_seen }}<br>
-        Last seen: {{ d.last_seen }}<br>
+        First seen: <span class="detection-time"><span>{{ d.first_seconds }}</span><br><span class="date">{{ d.first_date }}</span></span><br>
+        Last seen: <span class="detection-time"><span>{{ d.last_seconds }}</span><br><span class="date">{{ d.last_date }}</span></span><br>
         RSSI: {{ d.rssi or '—' }}<br>
         Company IDs: {{ d.company_ids|join(', ') if d.company_ids else '—' }}<br>
         Service UUIDs: {{ d.service_uuid_list|join(', ') if d.service_uuid_list else '—' }}
