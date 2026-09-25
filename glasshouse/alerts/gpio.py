@@ -16,12 +16,20 @@ log = logging.getLogger(__name__)
 LED_PIN = 17
 BUZZER_PIN = 18
 BUZZER_ENABLED = False  # Set True when buzzer is physically connected
+_led_enabled = True
 
 _gpio_available = False
 _breathing_task: asyncio.Task | None = None
 _gpio = None
 _pwm_led = None
 _pwm_buzzer = None
+
+
+def set_led_enabled(enabled: bool) -> None:
+    global _led_enabled
+    _led_enabled = enabled
+    if not enabled:
+        _led_off()
 
 
 def _setup_gpio() -> bool:
@@ -74,7 +82,7 @@ def cleanup() -> None:
 
 def _led_duty(duty: float) -> None:
     """Set LED PWM duty cycle (0-100)."""
-    if _gpio_available and _pwm_led:
+    if _led_enabled and _gpio_available and _pwm_led:
         _pwm_led.ChangeDutyCycle(max(0.0, min(100.0, duty)))
 
 
@@ -162,7 +170,7 @@ async def flash_redetection() -> None:
 
 async def flash_boot_ready() -> None:
     """Slow single blink on boot complete."""
-    if not _gpio_available:
+    if not _gpio_available or not _led_enabled:
         return
     _led_full()
     await asyncio.sleep(0.5)

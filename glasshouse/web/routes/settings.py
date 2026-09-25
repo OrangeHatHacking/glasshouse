@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from glasshouse.storage import db
+from glasshouse.alerts import gpio
 from glasshouse.web.auth import CSRF_TOKEN, verify_csrf
 
 log = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ async def save_settings(
     mqtt_password: str = Form(""),
     mqtt_topic: str = Form("glasshouse/detection"),
     mqtt_tls: str = Form("off"),
-    led_enabled: str = Form("on"),
+    led_enabled: str = Form("off"),
     buzzer_enabled: str = Form("off"),
 ):
     verify_csrf(csrf_token)
@@ -60,7 +61,9 @@ async def save_settings(
     await db.set_setting("mqtt_user", mqtt_user.strip())
     await db.set_setting("mqtt_tls", "1" if mqtt_tls == "on" else "0")
     await db.set_setting("mqtt_topic", mqtt_topic.strip() or "glasshouse/detection")
-    await db.set_setting("led_enabled", "1" if led_enabled == "on" else "0")
+    led_is_enabled = led_enabled == "on"
+    await db.set_setting("led_enabled", "1" if led_is_enabled else "0")
+    gpio.set_led_enabled(led_is_enabled)
     await db.set_setting("buzzer_enabled", "1" if buzzer_enabled == "on" else "0")
     # Only update password if a new one was provided
     if mqtt_password.strip():

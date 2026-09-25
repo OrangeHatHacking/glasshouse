@@ -68,14 +68,21 @@ function escapeHtml(value) {
   });
 }
 
+function formatMac(mac) {
+  const parts = String(mac ?? "").split(":");
+  if (parts.length !== 6) return escapeHtml(mac);
+  return escapeHtml(parts.slice(0, 3).join(":")) + "<br>" +
+    escapeHtml(parts.slice(3).join(":"));
+}
+
 function rssiClass(rssi) {
   return rssi > -60 ? "rssi-strong" : rssi > -80 ? "rssi-medium" : "rssi-weak";
 }
 
 function deviceRows(device) {
   const mac = escapeHtml(device.mac);
-  return `<tr class="device-row" data-mac="${mac}" onclick="toggleDeviceDetails(this)">
-    <td style="font-size:11px;">${mac}</td>
+      return `<tr class="device-row" data-mac="${mac}" onclick="toggleDeviceDetails(this)">
+        <td style="font-size:11px;">${formatMac(device.mac)}</td>
     <td>${escapeHtml(device.name || "—")}</td>
     <td>${escapeHtml(device.manufacturer)}</td>
     <td class="scan-rssi ${rssiClass(device.rssi)}">${escapeHtml(device.rssi ?? "—")}</td>
@@ -89,7 +96,7 @@ function deviceRows(device) {
 }
 
 function updateRow(row, device) {
-  row.children[0].textContent = device.mac;
+  row.children[0].innerHTML = formatMac(device.mac);
   row.children[1].textContent = device.name || "—";
   row.children[2].textContent = device.manufacturer;
   row.children[3].textContent = device.rssi ?? "—";

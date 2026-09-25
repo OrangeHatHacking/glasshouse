@@ -85,6 +85,8 @@ async def main() -> None:
     db.init_db()
     vendor_state, signature_state = await db.get_vendor_states()
     vendor_db.apply_saved_state(vendor_state, signature_state)
+    led_enabled = await db.get_setting("led_enabled")
+    gpio.set_led_enabled(led_enabled != "0")
 
     # Initialise GPIO (degrades gracefully if not on Pi)
     gpio.init()

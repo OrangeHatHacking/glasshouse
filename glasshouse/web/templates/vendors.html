@@ -21,9 +21,12 @@
   .signature-table td { padding: 4px 8px; }
   .signature-table th { font-size: 10px; }
   .vendor-row { cursor: pointer; }
+  .vendor-table { border-collapse: separate; border-spacing: 0; }
+  .vendor-table > tbody > tr.vendor-row > td,
+  .vendor-table > tbody > tr.signature-row > td { border-bottom: 1px solid var(--border); }
   .vendor-arrow { color: var(--accent); text-align: center; }
 </style>
-<table>
+<table class="vendor-table">
   <thead>
     <tr><th>Vendor</th><th>Category</th><th>Description</th><th>Status</th><th></th></tr>
   </thead>
