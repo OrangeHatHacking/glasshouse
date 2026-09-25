@@ -22,6 +22,7 @@ VALID_TYPES = {"oui", "mac", "cid", "uuid", "name"}
 def _validate_filter(type_: str, value: str, description: str) -> tuple[str, str]:
     value = value.strip()
     description = description.strip()
+    # Reject ASCII control characters below 32.
     if len(description) > 200 or any(ord(char) < 32 for char in description):
         raise ValueError("Description is invalid")
     if type_ == "oui":
