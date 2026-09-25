@@ -1,33 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Recent Detections</h2>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  <h2 style="margin-bottom:12px;">Recent Detections</h2>
+  <form method="get" action="/" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+    <label for="window" style="display:inline;margin-right:6px;">Show</label>
+    <select id="window" name="window" onchange="this.form.submit()" style="width:auto;max-width:180px;margin:0;">
+      <option value="10m" {% if window == '10m' %}selected{% endif %}>10 min</option>
+      <option value="1h" {% if window == '1h' %}selected{% endif %}>1 hour</option>
+      <option value="today" {% if window == 'today' %}selected{% endif %}>Today</option>
+      <option value="week" {% if window == 'week' %}selected{% endif %}>This week</option>
+      <option value="all" {% if window == 'all' %}selected{% endif %}>All time</option>
+    </select>
+    <label for="sort" style="display:inline;">Sort</label>
+    <select id="sort" name="sort" onchange="this.form.submit()" style="width:auto;max-width:150px;margin:0;">
+      <option value="last_seen" {% if sort == 'last_seen' %}selected{% endif %}>Last seen</option>
+      <option value="first_seen" {% if sort == 'first_seen' %}selected{% endif %}>First seen</option>
+    </select>
+  </form>
+</div>
 {% if detections %}
-<table>
+<style>
+  .detection-table { width: 100%; table-layout: fixed; }
+  .detection-table th:nth-child(1) { width: 20%; }
+  .detection-table th:nth-child(2) { width: 23%; }
+  .detection-table th:nth-child(3) { width: 22%; }
+  .detection-table th:nth-child(4) { width: 22%; }
+  .detection-table th:nth-child(5) { width: 13%; }
+  .detection-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .detection-row { cursor: pointer; }
+  .detection-details-row { display: none; }
+  .detection-details-row.visible { display: table-row; }
+  .detection-details-row > td {
+    padding: 4px 8px 8px 8px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+  }
+</style>
+<table class="detection-table">
   <thead>
     <tr>
-      <th>Time</th>
+      <th>{{ 'First seen' if sort == 'first_seen' else 'Last seen' }}</th>
       <th>MAC</th>
+      <th>Name</th>
       <th>Vendor</th>
       <th>Match</th>
-      <th>RSSI</th>
-      <th>Alias</th>
     </tr>
   </thead>
   <tbody>
     {% for d in detections %}
-    <tr>
-      <td style="color:var(--muted);font-size:11px;">{{ d.timestamp[:19].replace('T',' ') }}</td>
+    <tr class="detection-row" onclick="toggleDetectionDetails(this)">
+      <td style="color:var(--muted);font-size:11px;" title="{{ d.first_seen if sort == 'first_seen' else d.last_seen }}">
+        {{ (d.first_seen if sort == 'first_seen' else d.last_seen)[:16].replace('T', ' ') }}
+      </td>
       <td>{{ d.mac }}</td>
+      <td>{{ d.local_name or '—' }}</td>
       <td><span class="badge badge-{{ d.match_type.split(':')[0] if d.match_type else 'custom' }}">{{ d.vendor or '—' }}</span></td>
       <td style="color:var(--muted);font-size:11px;">{{ d.match_type }}</td>
-      <td class="{% if d.rssi and d.rssi > -60 %}rssi-strong{% elif d.rssi and d.rssi > -80 %}rssi-medium{% else %}rssi-weak{% endif %}">
-        {{ d.rssi or '—' }}
+    </tr>
+    <tr class="detection-details-row">
+      <td colspan="5">
+        First seen: {{ d.first_seen }}<br>
+        Last seen: {{ d.last_seen }}<br>
+        RSSI: {{ d.rssi or '—' }}<br>
+        Company IDs: {{ d.company_ids|join(', ') if d.company_ids else '—' }}<br>
+        Service UUIDs: {{ d.service_uuid_list|join(', ') if d.service_uuid_list else '—' }}
       </td>
-      <td style="color:var(--muted);">{{ d.alias or '' }}</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+<script>
+function toggleDetectionDetails(row) {
+  row.nextElementSibling.classList.toggle("visible");
+}
+</script>
 {% else %}
 <p class="empty">No detections yet. Scanner is active.</p>
 {% endif %}

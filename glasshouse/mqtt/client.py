@@ -5,7 +5,7 @@ Reads config from the encrypted settings DB on each detection event.
 Reconnects automatically if the broker drops.
 
 Payload format (matches OUI-SPY for Home Assistant compatibility):
-  {"mac": "AA:BB:CC:DD:EE:FF", "vendor": "Axon", "alias": "...", "rssi": -65,
+   {"mac": "AA:BB:CC:DD:EE:FF", "vendor": "Axon", "rssi": -65,
    "match_type": "composite", "category": "bodycam"}
 """
 
@@ -93,7 +93,6 @@ class MQTTClient:
             {
                 "mac": event.get("mac"),
                 "vendor": event.get("vendor"),
-                "alias": event.get("alias"),
                 "rssi": event.get("rssi"),
                 "match_type": event.get("match_type"),
                 "category": event.get("category"),

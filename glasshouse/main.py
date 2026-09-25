@@ -22,6 +22,7 @@ import sys
 import uvicorn
 
 from glasshouse import config
+from glasshouse import vendors as vendor_db
 from glasshouse.alerts import gpio
 from glasshouse.mqtt import client as mqtt_client
 from glasshouse.scanner import ble
@@ -82,6 +83,8 @@ async def main() -> None:
 
     # Initialise encrypted DB
     db.init_db()
+    vendor_state, signature_state = await db.get_vendor_states()
+    vendor_db.apply_saved_state(vendor_state, signature_state)
 
     # Initialise GPIO (degrades gracefully if not on Pi)
     gpio.init()

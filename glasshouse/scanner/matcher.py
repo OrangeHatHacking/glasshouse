@@ -17,6 +17,7 @@ Match priority (first match wins per vendor):
 import logging
 from dataclasses import dataclass
 
+from glasshouse import vendors as vendor_db
 from glasshouse.vendors import (
     VENDORS,
     CIDFilter,
@@ -114,23 +115,25 @@ def match_vendor(
     cids = _parse_cids(manufacturer_data)
     uuids = _parse_service_uuids(service_uuids)
 
-    for vendor in VENDORS:
-        if not vendor.enabled:
+    for vendor_index, vendor in enumerate(VENDORS):
+        if not vendor_db.is_vendor_enabled(vendor_index):
             continue
 
         # Sort filters: composite first, then oui, cid, uuid, name
         ordered = sorted(
-            vendor.filters,
-            key=lambda f: {
+            enumerate(vendor.filters),
+            key=lambda item: {
                 "composite": 0,
                 "oui": 1,
                 "cid": 2,
                 "uuid": 3,
                 "name": 4,
-            }.get(f.type, 9),
+            }.get(item[1].type, 9),
         )
 
-        for f in ordered:
+        for signature_index, f in ordered:
+            if not vendor_db.is_signature_enabled(vendor_index, signature_index):
+                continue
             if isinstance(f, CompositeFilter):
                 if _match_composite(f, cids, uuids, local_name):
                     return MatchResult(

@@ -203,8 +203,8 @@ and GND. Set `buzzer_enabled` to true in web UI settings.
 - nftables firewall: only port 443 reachable on AP interface
 - No internet connection, no telemetry, no cloud
 
+</details>
+
 ## License
 
 GPL-3.0
-
-</details>

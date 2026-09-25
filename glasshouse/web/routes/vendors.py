@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 import glasshouse.vendors as vendor_db
+from glasshouse.storage import db
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/vendors")
@@ -19,17 +20,29 @@ async def vendors_page(request: Request):
     return templates.TemplateResponse(
         request,
         "vendors.html",
-        {"vendors": vendor_db.VENDORS},
+        {"vendors": vendor_db.get_vendor_rows()},
     )
 
 
-@router.post("/toggle/{vendor_name}")
-async def toggle_vendor(vendor_name: str):
-    vendor = vendor_db.get_vendor_by_name(vendor_name)
-    if vendor is None:
-        return {"error": f"Vendor '{vendor_name}' not found"}
-    for i, v in enumerate(vendor_db.VENDORS):
-        if v.name.lower() == vendor_name.lower():
-            vendor_db.VENDORS[i] = type(v)(**{**v.__dict__, "enabled": not v.enabled})
-            break
+@router.post("/toggle/{vendor_index}")
+async def toggle_vendor(vendor_index: int):
+    if not 0 <= vendor_index < len(vendor_db.VENDORS):
+        return {"error": "Vendor not found"}
+    enabled = not vendor_db.is_vendor_enabled(vendor_index)
+    vendor_db.set_vendor_enabled(vendor_index, enabled)
+    await db.set_vendor_state(vendor_db.vendor_state_key(vendor_index), enabled)
+    return RedirectResponse(url="/vendors/", status_code=303)
+
+
+@router.post("/signature/{vendor_index}/{signature_index}")
+async def toggle_signature(vendor_index: int, signature_index: int):
+    if not 0 <= vendor_index < len(vendor_db.VENDORS):
+        return {"error": "Vendor not found"}
+    if not 0 <= signature_index < len(vendor_db.VENDORS[vendor_index].filters):
+        return {"error": "Signature not found"}
+    enabled = not vendor_db.is_signature_enabled(vendor_index, signature_index)
+    vendor_db.set_signature_enabled(vendor_index, signature_index, enabled)
+    await db.set_signature_state(
+        vendor_db.signature_state_key(vendor_index, signature_index), enabled
+    )
     return RedirectResponse(url="/vendors/", status_code=303)

@@ -3,7 +3,7 @@ BLE scanner.
 
 Uses bleak's BleakScanner in passive callback mode. Each advertisement is
 passed through the match engine and fingerprint engine. Matches trigger:
-  - DB insert (detection + device history update)
+  - DB insert for the detection event
   - Alert (LED flash via gpio module)
   - MQTT publish (if enabled)
 
@@ -152,15 +152,12 @@ async def _handle_advertisement(
 
     _update_cooldown(mac)
 
-    alias = await storage.db.get_alias(mac)
-
     log.info(
-        "DETECTION | %s | vendor=%s | type=%s | rssi=%s | alias=%s | redetect=%s",
+        "DETECTION | %s | vendor=%s | type=%s | rssi=%s | redetect=%s",
         mac,
         result.vendor,
         result.match_type,
         adv.rssi,
-        alias,
         redetection,
     )
 
@@ -176,9 +173,7 @@ async def _handle_advertisement(
         service_uuids=[str(u) for u in (adv.service_uuids or [])],
         local_name=adv.local_name,
         tx_power=adv.tx_power,
-        alias=alias,
     )
-    await storage.db.upsert_device_history(mac=mac, alias=alias)
 
     # Fire registered callbacks (alerts, MQTT)
     event = {
@@ -188,7 +183,6 @@ async def _handle_advertisement(
         "match_type": result.match_type,
         "matched_value": result.matched_value,
         "rssi": adv.rssi,
-        "alias": alias,
         "redetection": redetection,
         "fingerprint_digest": fp.digest,
     }

@@ -1,87 +1,168 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Live scan: {{ total }} device(s) nearby</h2>
+<h2>Live scan</h2>
 <p style="color:var(--muted);font-size:11px;margin-bottom:16px;">
-  All BLE devices seen in the last 60 seconds. Auto-refreshes every 5 seconds.
+  All BLE devices seen in the last 60 seconds. Live updates are enabled.
 </p>
-
-{% macro device_table(devices) %}
-<table>
-  <thead>
-    <tr>
-      <th>MAC</th>
-      <th>Name</th>
-      <th>Manufacturer</th>
-      <th>RSSI</th>
-      <th>Company IDs</th>
-      <th>Service UUIDs</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for d in devices %}
-    <tr>
-      <td style="font-size:11px;">{{ d.mac }}</td>
-      <td>{{ d.name or '—' }}</td>
-      <td>
-        {% if d.manufacturer == 'Randomised' %}
-          <span style="color:var(--muted);font-style:italic;">Randomised</span>
-        {% elif d.manufacturer == 'Unknown' %}
-          <span style="color:var(--muted);">Unknown</span>
-        {% else %}
-          <span style="color:var(--accent);">{{ d.manufacturer }}</span>
-        {% endif %}
-      </td>
-      <td class="{% if d.rssi and d.rssi > -60 %}rssi-strong{% elif d.rssi and d.rssi > -80 %}rssi-medium{% else %}rssi-weak{% endif %}">
-        {{ d.rssi or '—' }}
-      </td>
-      <td style="color:var(--muted);font-size:11px;">{{ d.company_ids|join(', ') if d.company_ids else '—' }}</td>
-      <td style="color:var(--muted);font-size:10px;">
-        {% if d.service_uuids %}
-          {% for u in d.service_uuids[:3] %}{{ u[-8:-4] if u|length > 8 else u }}{% if not loop.last %}, {% endif %}{% endfor %}
-          {% if d.service_uuids|length > 3 %} +{{ d.service_uuids|length - 3 }}{% endif %}
-        {% else %}
-          —
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endmacro %}
-
-{% if matched %}
-<h2 style="color:var(--danger);border-color:var(--danger);">Vendor Matches ({{ matched|length }})</h2>
-<p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
-  Devices matching a known surveillance vendor signature.
-</p>
-{{ device_table(matched) }}
-{% endif %}
-
-{% if interesting %}
-<h2>Named Unknown Devices ({{ interesting|length }})</h2>
-<p style="color:var(--muted);font-size:11px;margin-bottom:8px;">
-  Unidentified manufacturer but advertising a device name.
-  If you recognise a bodycam or radio here, note the MAC prefix and add it as a custom filter.
-</p>
-{{ device_table(interesting) }}
-{% endif %}
-
-{% if everything_else %}
-<details style="margin-top:20px;">
-  <summary style="color:var(--muted);cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;">
-    All other devices ({{ everything_else|length }}) - click to expand
-  </summary>
-  <div style="margin-top:8px;">
-  {{ device_table(everything_else) }}
-  </div>
-</details>
-{% endif %}
-
-{% if not matched and not interesting and not everything_else %}
-<p class="empty">No BLE devices detected. Is Bluetooth enabled?</p>
-{% endif %}
-
+<style>
+  .scan-table-wrap { overflow-x: auto; }
+  .scan-table { min-width: 620px; width: 100%; table-layout: fixed; }
+  .scan-table th:nth-child(1) { width: 28%; }
+  .scan-table th:nth-child(2) { width: 28%; }
+  .scan-table th:nth-child(3) { width: 30%; }
+  .scan-table th:nth-child(4) { width: 14%; }
+  .scan-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .device-row { cursor: pointer; }
+  .device-details-row { display: none; }
+  .device-details-row.visible { display: table-row; }
+  .device-details-row > td {
+    padding: 4px 8px 8px 8px;
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+  }
+  @media (max-width: 700px) {
+    .scan-table { min-width: 0; }
+    .scan-table th:nth-child(1),
+    .scan-table td:nth-child(1) { font-size: 10px; }
+  }
+</style>
+<div id="scan-content"></div>
 <script>
-setTimeout(function(){ location.reload(); }, 5000);
+const scanContent = document.getElementById("scan-content");
+let latestScan = null;
+let lastStructureKey = "";
+let scanPaused = false;
+let openDeviceMacs = new Set();
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, function(char) {
+    return {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[char];
+  });
+}
+
+function deviceTable(devices) {
+  return `<div class="scan-table-wrap"><table class="scan-table">
+    <thead><tr>
+      <th>MAC</th><th>Name</th><th>Manufacturer</th><th>RSSI</th>
+    </tr></thead>
+    <tbody>${devices.map(function(device) {
+      const rssi = device.rssi ?? "—";
+      const rssiClass = device.rssi > -60 ? "rssi-strong" :
+        device.rssi > -80 ? "rssi-medium" : "rssi-weak";
+      const isOpen = openDeviceMacs.has(device.mac);
+      return `<tr class="device-row" data-mac="${escapeHtml(device.mac)}" onclick="toggleDeviceDetails(this)">
+        <td style="font-size:11px;">${escapeHtml(device.mac)}</td>
+        <td>${escapeHtml(device.name || "—")}</td>
+        <td><span style="color:var(--${device.manufacturer === "Unknown" || device.manufacturer === "Randomised" ? "muted" : "accent"});">${escapeHtml(device.manufacturer)}</span></td>
+        <td class="scan-rssi ${rssiClass}">${escapeHtml(rssi)}</td>
+      </tr>
+      <tr class="device-details-row${isOpen ? " visible" : ""}" data-detail-mac="${escapeHtml(device.mac)}">
+        <td colspan="4">
+          Company IDs: ${escapeHtml((device.company_ids || []).join(", ") || "—")}<br>
+          Service UUIDs: ${escapeHtml((device.service_uuids || []).join(", ") || "—")}
+        </td>
+      </tr>`;
+    }).join("")}</tbody>
+  </table></div>`;
+}
+
+function structureKey(data) {
+  return JSON.stringify([
+    ...data.matched,
+    ...data.interesting,
+    ...data.everything_else,
+  ].map(function(device) {
+    return {
+      mac: device.mac,
+      name: device.name,
+      manufacturer: device.manufacturer,
+      company_ids: device.company_ids,
+      service_uuids: device.service_uuids,
+    };
+  }).sort(function(a, b) { return a.mac.localeCompare(b.mac); }));
+}
+
+function updateRssi(data) {
+  const devices = [...data.matched, ...data.interesting, ...data.everything_else];
+  const byMac = new Map(devices.map(function(device) { return [device.mac, device]; }));
+  scanContent.querySelectorAll("tr.device-row[data-mac]").forEach(function(row) {
+    const device = byMac.get(row.dataset.mac);
+    if (!device) return;
+    const cell = row.querySelector(".scan-rssi");
+    if (!cell) return;
+    cell.textContent = device.rssi ?? "—";
+    cell.className = "scan-rssi " + (device.rssi > -60 ? "rssi-strong" :
+      device.rssi > -80 ? "rssi-medium" : "rssi-weak");
+  });
+}
+
+function renderScan(data, wasOpen) {
+  openDeviceMacs = new Set(Array.from(
+    scanContent.querySelectorAll(".device-details-row.visible")
+  ).map(function(row) { return row.dataset.detailMac; }));
+  const scrollLefts = Array.from(scanContent.querySelectorAll(".scan-table-wrap"))
+    .map(function(wrapper) { return wrapper.scrollLeft; });
+  let html = "";
+  if (data.matched.length) {
+    html += `<h2 style="color:var(--accent);border-color:var(--accent);">Known OUI Matches (${data.matched.length})</h2>
+      <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">The MAC prefix matches an enabled OUI signature. This is not a confirmed detection.</p>
+      ${deviceTable(data.matched)}`;
+  }
+  if (data.interesting.length) {
+    html += `<h2>Named Unknown Devices (${data.interesting.length})</h2>
+      <p style="color:var(--muted);font-size:11px;margin-bottom:8px;">Unidentified manufacturer but advertising a device name.</p>
+      ${deviceTable(data.interesting)}`;
+  }
+  if (data.everything_else.length) {
+    html += `<details id="all-other-devices" style="margin-top:20px;">
+      <summary style="color:var(--muted);cursor:pointer;font-size:12px;text-transform:uppercase;letter-spacing:1px;">All other devices (${data.everything_else.length}) - click to expand</summary>
+      <div style="margin-top:8px;">${deviceTable(data.everything_else)}</div>
+    </details>`;
+  }
+  if (!html) html = '<p class="empty">No BLE devices detected. Is Bluetooth enabled?</p>';
+  scanContent.innerHTML = html;
+  scanContent.querySelectorAll(".scan-table-wrap").forEach(function(wrapper, index) {
+    wrapper.scrollLeft = scrollLefts[index] || 0;
+  });
+  const details = document.getElementById("all-other-devices");
+  if (details && wasOpen) details.open = true;
+}
+
+function toggleDeviceDetails(row) {
+  const details = row.nextElementSibling;
+  const mac = row.dataset.mac;
+  const open = details.classList.toggle("visible");
+  if (open) openDeviceMacs.add(mac);
+  else openDeviceMacs.delete(mac);
+}
+
+const scanStream = new EventSource("/scan/events");
+scanStream.onmessage = function(event) {
+  const details = document.getElementById("all-other-devices");
+  latestScan = JSON.parse(event.data);
+  if (scanPaused) return;
+  const key = structureKey(latestScan);
+  if (key === lastStructureKey) {
+    updateRssi(latestScan);
+    return;
+  }
+  renderScan(latestScan, details && details.open);
+  lastStructureKey = key;
+};
+
+scanContent.addEventListener("click", function(event) {
+  if (!event.target.closest("summary") && !event.target.closest(".device-row")) return;
+  setTimeout(function() {
+    scanPaused = Boolean(
+      scanContent.querySelector("details[open], .device-details-row.visible")
+    );
+    if (!scanPaused && latestScan) {
+      lastStructureKey = "";
+      renderScan(latestScan, false);
+      lastStructureKey = structureKey(latestScan);
+    }
+  }, 0);
+});
 </script>
 {% endblock %}

@@ -8,7 +8,6 @@ file. All database access is only done through this module.
 Tables:
   detections    - every BLE match event
   filters       - user-defined custom filters (vendor DB is hardcoded)
-  device_history - per-MAC summary (first/last seen, count, alias)
   settings      - key/value config store
 """
 
@@ -70,7 +69,7 @@ def _get_connection() -> sqlite3.Connection:
     conn.execute("PRAGMA kdf_iter = 64000")
     conn.execute("PRAGMA cipher_hmac_algorithm = HMAC_SHA512")
     conn.execute("PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA512")
-    conn.row_factory = sqlite3.Row
+    conn.row_factory = sqlcipher3.Row
     return conn
 
 
@@ -86,7 +85,6 @@ def init_db() -> None:
                 id                INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp         TEXT    NOT NULL,
                 mac               TEXT    NOT NULL,
-                alias             TEXT,
                 vendor            TEXT,
                 match_type        TEXT,
                 rssi              INTEGER,
@@ -115,19 +113,18 @@ def init_db() -> None:
             CREATE UNIQUE INDEX IF NOT EXISTS idx_filters_type_value
                 ON filters (type, value);
 
-            CREATE TABLE IF NOT EXISTS device_history (
-                mac             TEXT PRIMARY KEY,
-                first_seen      TEXT NOT NULL,
-                last_seen       TEXT NOT NULL,
-                detection_count INTEGER NOT NULL DEFAULT 1,
-                alias           TEXT
-            );
-
             CREATE TABLE IF NOT EXISTS settings (
                 key   TEXT PRIMARY KEY,
                 value TEXT
             );
         """)
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(detections)").fetchall()
+        }
+        if "alias" in columns:
+            conn.execute("ALTER TABLE detections DROP COLUMN alias")
+        conn.execute("DROP TABLE IF EXISTS device_history")
         conn.commit()
         log.info("Database initialised at %s", DB_PATH)
     finally:
@@ -151,11 +148,11 @@ def _insert_detection_sync(row: dict) -> int:
         cur = conn.execute(
             """
             INSERT INTO detections
-                (timestamp, mac, alias, vendor, match_type, rssi,
+                (timestamp, mac, vendor, match_type, rssi,
                  manufacturer_data, service_uuids, local_name, tx_power,
                  lat, lon, alt)
             VALUES
-                (:timestamp, :mac, :alias, :vendor, :match_type, :rssi,
+                (:timestamp, :mac, :vendor, :match_type, :rssi,
                  :manufacturer_data, :service_uuids, :local_name, :tx_power,
                  :lat, :lon, :alt)
             """,
@@ -176,7 +173,6 @@ async def insert_detection(
     service_uuids: list[str] | None,
     local_name: str | None,
     tx_power: int | None,
-    alias: str | None = None,
     lat: float | None = None,
     lon: float | None = None,
     alt: float | None = None,
@@ -184,7 +180,6 @@ async def insert_detection(
     row = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mac": mac.upper(),
-        "alias": alias,
         "vendor": vendor,
         "match_type": match_type,
         "rssi": rssi,
@@ -201,96 +196,77 @@ async def insert_detection(
     return await _run(_insert_detection_sync, row)
 
 
-def _upsert_history_sync(mac: str, alias: str | None) -> None:
-    now = datetime.now(timezone.utc).isoformat()
+def _get_detections_sync(
+    limit: int, offset: int, since: str | None = None
+) -> list[dict]:
     conn = _get_connection()
     try:
-        conn.execute(
-            """
-            INSERT INTO device_history (mac, first_seen, last_seen, detection_count, alias)
-            VALUES (:mac, :now, :now, 1, :alias)
-            ON CONFLICT(mac) DO UPDATE SET
-                last_seen       = :now,
-                detection_count = detection_count + 1,
-                alias           = COALESCE(:alias, alias)
-            """,
-            {"mac": mac.upper(), "now": now, "alias": alias},
-        )
-        conn.commit()
+        if since:
+            rows = conn.execute(
+                """
+                SELECT * FROM detections
+                WHERE timestamp >= ?
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+                """,
+                (since, limit, offset),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT * FROM detections
+                ORDER BY timestamp DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset),
+            ).fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-async def upsert_device_history(mac: str, alias: str | None = None) -> None:
-    await _run(_upsert_history_sync, mac, alias)
+async def get_detections(
+    limit: int = 100, offset: int = 0, since: str | None = None
+) -> list[dict]:
+    return await _run(_get_detections_sync, limit, offset, since)
 
 
-def _get_detections_sync(limit: int, offset: int) -> list[dict]:
+def _get_latest_detections_sync(
+    limit: int, since: str | None = None, sort_by: str = "last_seen"
+) -> list[dict]:
     conn = _get_connection()
     try:
+        sort_column = "first_seen" if sort_by == "first_seen" else "last_seen"
+        where = "WHERE timestamp >= ?" if since else ""
+        params = (since, limit) if since else (limit,)
         rows = conn.execute(
-            """
-            SELECT * FROM detections
-            ORDER BY timestamp DESC
-            LIMIT ? OFFSET ?
+            f"""
+            SELECT * FROM (
+                SELECT detections.*,
+                       MIN(timestamp) OVER (PARTITION BY mac) AS first_seen,
+                       MAX(timestamp) OVER (PARTITION BY mac) AS last_seen,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY mac
+                           ORDER BY timestamp DESC, id DESC
+                       ) AS row_number
+                FROM detections
+                {where}
+            )
+            WHERE row_number = 1
+            ORDER BY {sort_column} DESC
+            LIMIT ?
             """,
-            (limit, offset),
+            params,
         ).fetchall()
         return [dict(r) for r in rows]
     finally:
         conn.close()
 
 
-async def get_detections(limit: int = 100, offset: int = 0) -> list[dict]:
-    return await _run(_get_detections_sync, limit, offset)
-
-
-def _get_device_history_sync(limit: int) -> list[dict]:
-    conn = _get_connection()
-    try:
-        rows = conn.execute(
-            "SELECT * FROM device_history ORDER BY last_seen DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        return [dict(r) for r in rows]
-    finally:
-        conn.close()
-
-
-async def get_device_history(limit: int = 100) -> list[dict]:
-    return await _run(_get_device_history_sync, limit)
-
-
-def _set_alias_sync(mac: str, alias: str) -> None:
-    conn = _get_connection()
-    try:
-        conn.execute(
-            "UPDATE device_history SET alias = ? WHERE mac = ?",
-            (alias, mac.upper()),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
-
-async def set_alias(mac: str, alias: str) -> None:
-    await _run(_set_alias_sync, mac, alias)
-
-
-def _get_alias_sync(mac: str) -> str | None:
-    conn = _get_connection()
-    try:
-        row = conn.execute(
-            "SELECT alias FROM device_history WHERE mac = ?",
-            (mac.upper(),),
-        ).fetchone()
-        return row["alias"] if row else None
-    finally:
-        conn.close()
-
-
-async def get_alias(mac: str) -> str | None:
-    return await _run(_get_alias_sync, mac)
+async def get_latest_detections(
+    limit: int = 100, since: str | None = None, sort_by: str = "last_seen"
+) -> list[dict]:
+    return await _run(_get_latest_detections_sync, limit, since, sort_by)
 
 
 def _get_filters_sync() -> list[dict]:
@@ -371,10 +347,50 @@ async def set_setting(key: str, value: str) -> None:
     await _run(_set_setting_sync, key, value)
 
 
+def _get_vendor_states_sync() -> tuple[dict[str, bool], dict[str, bool]]:
+    conn = _get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT key, value FROM settings WHERE key LIKE 'vendor.%'"
+        ).fetchall()
+        vendors: dict[str, bool] = {}
+        signatures: dict[str, bool] = {}
+        for row in rows:
+            key = row["key"]
+            if key.startswith("vendor.enabled."):
+                vendor_key = key.removeprefix("vendor.enabled.")
+                if vendor_key.isdigit():
+                    vendor_key = f"#{vendor_key}"
+                vendors[vendor_key] = row["value"] == "1"
+            elif key.startswith("vendor.signature.enabled."):
+                signature_key = key.removeprefix("vendor.signature.enabled.")
+                parts = signature_key.split(":")
+                if len(parts) == 2 and all(part.isdigit() for part in parts):
+                    signature_key = f"#{parts[0]}:{parts[1]}"
+                signatures[signature_key] = row["value"] == "1"
+        return vendors, signatures
+    finally:
+        conn.close()
+
+
+async def get_vendor_states() -> tuple[dict[str, bool], dict[str, bool]]:
+    return await _run(_get_vendor_states_sync)
+
+
+async def set_vendor_state(vendor_key: str, enabled: bool) -> None:
+    await set_setting(f"vendor.enabled.{vendor_key}", "1" if enabled else "0")
+
+
+async def set_signature_state(signature_key: str, enabled: bool) -> None:
+    await set_setting(
+        f"vendor.signature.enabled.{signature_key}",
+        "1" if enabled else "0",
+    )
+
+
 def _clear_history_sync() -> None:
     conn = _get_connection()
     try:
-        conn.execute("DELETE FROM device_history")
         conn.execute("DELETE FROM detections")
         conn.commit()
     finally:

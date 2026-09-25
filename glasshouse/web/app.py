@@ -14,7 +14,6 @@ from fastapi.staticfiles import StaticFiles
 from glasshouse import config
 from glasshouse.web.routes import (
     dashboard,
-    devices,
     export,
     filters,
     scan,
@@ -48,7 +47,6 @@ def create_app() -> FastAPI:
     # Routes
     app.include_router(dashboard.router)
     app.include_router(filters.router)
-    app.include_router(devices.router)
     app.include_router(vendors.router)
     app.include_router(export.router)
     app.include_router(settings.router)

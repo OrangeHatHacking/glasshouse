@@ -1,6 +1,8 @@
 """Dashboard routes for detection history and status."""
 
 import logging
+import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -12,27 +14,50 @@ from glasshouse.storage import db
 log = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
+WINDOWS = {
+    "10m": timedelta(minutes=10),
+    "1h": timedelta(hours=1),
+    "today": timedelta(days=1),
+    "week": timedelta(days=7),
+}
 
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    detections = await db.get_detections(limit=50)
-    history = await db.get_device_history(limit=50)
+async def dashboard(
+    request: Request, window: str = "today", sort: str = "last_seen"
+):
+    window = window if window in WINDOWS or window == "all" else "today"
+    sort = sort if sort in ("first_seen", "last_seen") else "last_seen"
+    since = None
+    if window != "all":
+        since = (datetime.now(timezone.utc) - WINDOWS[window]).isoformat()
+    detections = await db.get_latest_detections(
+        limit=500, since=since, sort_by=sort
+    )
+    for detection in detections:
+        try:
+            manufacturer_data = json.loads(detection.get("manufacturer_data") or "{}")
+            detection["company_ids"] = [
+                hex(int(company_id)) for company_id in manufacturer_data
+            ]
+        except (TypeError, ValueError, json.JSONDecodeError):
+            detection["company_ids"] = []
+        try:
+            detection["service_uuid_list"] = json.loads(
+                detection.get("service_uuids") or "[]"
+            )
+        except (TypeError, ValueError, json.JSONDecodeError):
+            detection["service_uuid_list"] = []
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        {"detections": detections, "history": history},
+        {"detections": detections, "window": window, "sort": sort},
     )
 
 
 @router.get("/api/detections")
 async def api_detections(limit: int = 50, offset: int = 0):
     return await db.get_detections(limit=limit, offset=offset)
-
-
-@router.get("/api/history")
-async def api_history(limit: int = 100):
-    return await db.get_device_history(limit=limit)
 
 
 @router.get("/api/status")

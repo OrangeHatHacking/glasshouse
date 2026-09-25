@@ -218,6 +218,120 @@ VENDORS: list[Vendor] = [
     ),
 ]
 
+_vendor_enabled: dict[str, bool] = {}
+_signature_enabled: dict[str, bool] = {}
+
+
+def signature_label(signature: object) -> str:
+    if isinstance(signature, OUIFilter):
+        return f"OUI {signature.oui}"
+    if isinstance(signature, CIDFilter):
+        return f"Company ID {hex(signature.cid)}"
+    if isinstance(signature, UUIDFilter):
+        return f"Service UUID {hex(signature.uuid)}"
+    if isinstance(signature, NameFilter):
+        return f"Name contains {signature.substring}"
+    if isinstance(signature, CompositeFilter):
+        parts = []
+        if signature.cid is not None:
+            parts.append(f"CID {hex(signature.cid)}")
+        if signature.uuid is not None:
+            parts.append(f"UUID {hex(signature.uuid)}")
+        if signature.names:
+            parts.append("name: " + ", ".join(signature.names))
+        return " + ".join(parts)
+    return str(signature)
+
+
+def vendor_state_key(vendor_index: int) -> str:
+    return VENDORS[vendor_index].name
+
+
+def signature_state_key(vendor_index: int, signature_index: int) -> str:
+    return f"{VENDORS[vendor_index].name}|{signature_label(VENDORS[vendor_index].filters[signature_index])}"
+
+
+def is_vendor_enabled(vendor_index: int) -> bool:
+    return _vendor_enabled.get(
+        vendor_state_key(vendor_index), VENDORS[vendor_index].enabled
+    )
+
+
+def is_signature_enabled(vendor_index: int, signature_index: int) -> bool:
+    return _signature_enabled.get(
+        signature_state_key(vendor_index, signature_index), True
+    )
+
+
+def set_vendor_enabled(vendor_index: int, enabled: bool) -> None:
+    _vendor_enabled[vendor_state_key(vendor_index)] = enabled
+    VENDORS[vendor_index].enabled = enabled
+
+
+def set_signature_enabled(
+    vendor_index: int, signature_index: int, enabled: bool
+) -> None:
+    _signature_enabled[signature_state_key(vendor_index, signature_index)] = enabled
+
+
+def apply_saved_state(
+    vendor_state: dict[str, bool], signature_state: dict[str, bool]
+) -> None:
+    for vendor_index, vendor in enumerate(VENDORS):
+        legacy_vendor_key = f"#{vendor_index}"
+        if vendor.name in vendor_state:
+            set_vendor_enabled(vendor_index, vendor_state[vendor.name])
+        elif legacy_vendor_key in vendor_state:
+            set_vendor_enabled(vendor_index, vendor_state[legacy_vendor_key])
+        for signature_index in range(len(vendor.filters)):
+            key = signature_state_key(vendor_index, signature_index)
+            legacy_key = f"#{vendor_index}:{signature_index}"
+            if key in signature_state:
+                set_signature_enabled(
+                    vendor_index, signature_index, signature_state[key]
+                )
+            elif legacy_key in signature_state:
+                set_signature_enabled(
+                    vendor_index, signature_index, signature_state[legacy_key]
+                )
+
+
+def get_vendor_rows() -> list[dict]:
+    return [
+        {
+            "index": vendor_index,
+            "vendor": vendor,
+            "enabled": is_vendor_enabled(vendor_index),
+            "signatures": [
+                {
+                    "index": signature_index,
+                    "label": signature_label(signature),
+                    "enabled": is_signature_enabled(vendor_index, signature_index),
+                }
+                for signature_index, signature in enumerate(vendor.filters)
+            ],
+        }
+        for vendor_index, vendor in enumerate(VENDORS)
+    ]
+
+
+def has_enabled_oui(mac: str) -> bool:
+    parts = mac.upper().replace("-", ":").split(":")
+    if len(parts) < 3:
+        return False
+    oui = ":".join(parts[:3])
+    for vendor_index, vendor in enumerate(VENDORS):
+        if not is_vendor_enabled(vendor_index):
+            continue
+        for signature_index, signature in enumerate(vendor.filters):
+            if (
+                isinstance(signature, OUIFilter)
+                and signature.oui == oui
+                and is_signature_enabled(vendor_index, signature_index)
+            ):
+                return True
+    return False
+
 
 def get_enabled_vendors() -> list[Vendor]:
     """Return only vendors that are currently enabled."""
