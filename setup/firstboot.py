@@ -283,7 +283,7 @@ def step_ap_credentials() -> None:
 
 def step_services() -> None:
     print("[5/5] Enabling services...")
-    services = ["hostapd", "dnsmasq", "glasshouse"]
+    services = ["glasshouse-ap", "dnsmasq", "glasshouse"]
     for svc in services:
         result = subprocess.run(
             ["systemctl", "enable", svc],

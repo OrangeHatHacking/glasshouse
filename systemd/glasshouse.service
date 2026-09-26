@@ -1,6 +1,6 @@
 [Unit]
 Description=Glasshouse BLE detector
-After=network.target bluetooth.target hostapd.service
+After=network.target bluetooth.target glasshouse-ap.service
 Wants=bluetooth.target
 
 [Service]

@@ -82,6 +82,9 @@ echo "      Done."
 # 3. Copy application
 echo "[3/6] Installing application..."
 cp -r "$REPO_DIR/glasshouse" /opt/glasshouse/
+cp "$REPO_DIR/setup/start-ap.sh" /opt/glasshouse/start-ap.sh
+cp "$REPO_DIR/setup/hostapd-wpa2.conf.tmpl" /opt/glasshouse/hostapd-wpa2.conf.tmpl
+chmod 0755 /opt/glasshouse/start-ap.sh
 echo "      Done."
 
 # 4. Network config
@@ -113,9 +116,13 @@ echo "      Done."
 # 6. systemd service
 echo "[6/6] Installing systemd service..."
 cp "$REPO_DIR/systemd/glasshouse.service" /etc/systemd/system/glasshouse.service
+cp "$REPO_DIR/systemd/glasshouse-ap.service" /etc/systemd/system/glasshouse-ap.service
+
+systemctl disable hostapd 2>/dev/null || true
 
 systemctl daemon-reload
 systemctl enable ssh
+systemctl enable glasshouse-ap
 systemctl enable glasshouse
 echo "      Done."
 
@@ -134,7 +141,7 @@ if [[ -t 0 ]]; then
     echo "  scp ${OPERATOR_USER}@glasshouse.local:glasshouse-client.p12 ."
     echo
     read -r -p "Press Enter after copying the certificate to start the private AP..." _ || true
-    systemctl restart dnsmasq hostapd glasshouse
+    systemctl restart dnsmasq glasshouse-ap glasshouse
     echo "Private AP started."
   else
     echo "Run first-boot setup later with:"
