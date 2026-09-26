@@ -128,7 +128,6 @@ echo "      Done."
 echo "[5/6] Installing firewall rules..."
 cp "$REPO_DIR/setup/nftables.conf" /etc/nftables.conf
 systemctl enable nftables
-systemctl restart nftables
 echo "      Done."
 
 # 6. systemd service
@@ -162,6 +161,7 @@ if [[ -t 0 ]]; then
     echo
     read -r -p "Press Enter after copying the certificate to start the private AP..." _ || true
     systemctl restart dnsmasq glasshouse-ap glasshouse
+    systemctl restart nftables
     echo "Private AP started."
   else
     echo "Run first-boot setup later with:"
