@@ -1,0 +1,12 @@
+[Unit]
+Description=Glasshouse wireless access point
+After=network.target
+Before=glasshouse.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/glasshouse/start-ap.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -27,13 +27,13 @@ ssh <username>@glasshouse.local
 3. Run the installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/bootstrap.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/install.sh | sudo bash
 ```
 
 Use `--user <username>` if the username isn't `pi`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/bootstrap.sh | sudo bash -s -- --user <username>
+curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/install.sh | sudo bash -s -- --user <username>
 ```
 
 The installer runs first-boot

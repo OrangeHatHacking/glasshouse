@@ -11,6 +11,23 @@ fi
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# When piped from curl, download the repository and re-run this script from
+# the extracted checkout so all setup files are available.
+if [[ ! -f "$REPO_DIR/requirements.txt" ]]; then
+  REPO="OrangeHatHacking/glasshouse"
+  REF="${GLASSHOUSE_REF:-main}"
+  TEMP_DIR="$(mktemp -d)"
+  trap 'rm -rf "$TEMP_DIR"' EXIT
+  ARCHIVE="$TEMP_DIR/glasshouse.tar.gz"
+  curl --fail --location --retry 3 \
+    "https://codeload.github.com/$REPO/tar.gz/$REF" \
+    --output "$ARCHIVE"
+  tar -xzf "$ARCHIVE" -C "$TEMP_DIR"
+  SOURCE_DIR="$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+  bash "$SOURCE_DIR/setup/install.sh" "$@" </dev/tty
+  exit $?
+fi
+
 usage() {
   echo "Usage: sudo bash setup/install.sh [--user USER]"
 }
