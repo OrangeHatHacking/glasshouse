@@ -66,6 +66,7 @@ apt-get install -y --no-install-recommends \
   python3 python3-pip python3-venv \
   hostapd dnsmasq nftables \
   openssh-server \
+  curl \
   libsqlcipher-dev \
   openssl \
   bluez bluez-tools \
@@ -114,7 +115,7 @@ systemctl restart nftables
 echo "      Done."
 
 # 6. systemd service
-echo "[6/6] Installing systemd service..."
+echo "[6/7] Installing systemd service..."
 cp "$REPO_DIR/systemd/glasshouse.service" /etc/systemd/system/glasshouse.service
 cp "$REPO_DIR/systemd/glasshouse-ap.service" /etc/systemd/system/glasshouse-ap.service
 
@@ -124,6 +125,8 @@ systemctl daemon-reload
 systemctl enable ssh
 systemctl enable glasshouse-ap
 systemctl enable glasshouse
+echo "[7/7] Applying host hardening..."
+bash "$REPO_DIR/setup/harden.sh"
 echo "      Done."
 
 echo

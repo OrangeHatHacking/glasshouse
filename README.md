@@ -24,15 +24,19 @@ Managed via a hidden WPA3 access point with mutual-TLS secured web console acces
 ssh <username>@glasshouse.local
 ```
 
-3. Clone the repo and run the installer:
+3. Run the installer:
 
 ```bash
-git clone <repository-url>
-cd glasshouse
-sudo bash setup/install.sh
+curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/bootstrap.sh | sudo bash
 ```
 
-Use `--user <username>` if the username isn't `pi`. The installer runs first-boot
+Use `--user <username>` if the username isn't `pi`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/OrangeHatHacking/glasshouse/main/setup/bootstrap.sh | sudo bash -s -- --user <username>
+```
+
+The installer runs first-boot
 setup, prints the certificate copy command, waits for confirmation, and starts
 the private AP. The Pi needs internet during installation.
 

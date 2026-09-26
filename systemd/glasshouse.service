@@ -20,6 +20,14 @@ ProtectSystem=strict
 ReadWritePaths=/var/lib/glasshouse /etc/glasshouse
 ProtectHome=yes
 PrivateTmp=yes
+UMask=0077
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 
 [Install]
 WantedBy=multi-user.target
