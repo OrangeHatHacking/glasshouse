@@ -1,7 +1,10 @@
 [Unit]
 Description=Glasshouse wireless access point
 After=network.target
+Wants=dnsmasq.service
 Before=glasshouse.service
+Before=dnsmasq.service
+After=NetworkManager.service
 
 [Service]
 Type=oneshot

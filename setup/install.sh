@@ -81,7 +81,9 @@ echo "[1/6] Installing system packages..."
 apt-get update -qq
 apt-get install -y --no-install-recommends \
   python3 python3-pip python3-venv \
+  build-essential python3-dev pkg-config python3-rpi.gpio \
   hostapd dnsmasq nftables \
+  network-manager \
   openssh-server \
   curl \
   libsqlcipher-dev \
@@ -118,16 +120,14 @@ sed "s/{{SSH_USER}}/$OPERATOR_USER/" \
   > /etc/ssh/sshd_config.d/glasshouse.conf
 chmod 0644 /etc/ssh/sshd_config.d/glasshouse.conf
 sshd -t
-# Install the static-IP fragment for wlan0.
-install -d -m 0755 /etc/dhcpcd.conf.d
-install -m 0644 "$REPO_DIR/setup/dhcpcd.conf" \
-  /etc/dhcpcd.conf.d/glasshouse.conf
 echo "      Done."
 
 # 5. nftables firewall
 echo "[5/6] Installing firewall rules..."
 cp "$REPO_DIR/setup/nftables.conf" /etc/nftables.conf
 systemctl enable nftables
+systemctl stop nftables 2>/dev/null || true
+nft flush ruleset 2>/dev/null || true
 echo "      Done."
 
 # 6. systemd service
@@ -138,6 +138,7 @@ cp "$REPO_DIR/systemd/glasshouse-ap.service" /etc/systemd/system/glasshouse-ap.s
 systemctl disable hostapd 2>/dev/null || true
 
 systemctl daemon-reload
+systemctl unmask hostapd
 systemctl enable ssh
 systemctl enable glasshouse-ap
 systemctl enable glasshouse
@@ -160,8 +161,15 @@ if [[ -t 0 ]]; then
     echo "  scp ${OPERATOR_USER}@glasshouse.local:glasshouse-client.p12 ."
     echo
     read -r -p "Press Enter after copying the certificate to start the private AP..." _ || true
-    systemctl restart dnsmasq glasshouse-ap glasshouse
-    systemctl restart nftables
+    if systemctl restart glasshouse-ap && \
+      systemctl restart dnsmasq && \
+      systemctl restart glasshouse && \
+      ip -4 addr show dev wlan0 | grep -q '192\.168\.4\.1/24'; then
+      systemctl restart nftables
+    else
+      echo "AP startup failed; firewall was not activated."
+      exit 1
+    fi
     echo "Private AP started."
   else
     echo "Run first-boot setup later with:"

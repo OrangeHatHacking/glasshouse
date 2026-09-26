@@ -3,7 +3,21 @@ set -u
 
 WPA2_TEMPLATE=/opt/glasshouse/hostapd-wpa2.conf.tmpl
 HOSTAPD_CONFIG=/etc/hostapd/hostapd.conf
+AP_INTERFACE=${GLASSHOUSE_AP_IFACE:-wlan0}
 
+if ! ip link show "$AP_INTERFACE" >/dev/null 2>&1; then
+  logger -t glasshouse "AP interface not found: $AP_INTERFACE"
+  exit 1
+fi
+
+if command -v nmcli >/dev/null 2>&1; then
+  nmcli device set "$AP_INTERFACE" managed no || true
+fi
+ip link set "$AP_INTERFACE" up
+ip addr flush dev "$AP_INTERFACE"
+ip addr add 192.168.4.1/24 dev "$AP_INTERFACE"
+
+systemctl unmask hostapd
 systemctl start hostapd
 if systemctl is-active --quiet hostapd; then
   exit 0

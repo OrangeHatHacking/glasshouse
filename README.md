@@ -5,7 +5,7 @@ Passive BLE surveillance-hardware detector for Raspberry Pi Zero 2W with a view 
 Detects known surveillance devices by OUI prefix (now known as MAC-L available from IEEE database),
 BLE manufacturer data, service UUIDs, and composite payload
 fingerprinting. Alerts via LED. Logs to AES-256 encrypted SQLite. 
-Managed via a hidden WPA3 access point with mutual-TLS secured web console accessible from Android or GrapheneOS.
+Managed via a hidden WPA3/WPA2 access point with a mutual-TLS secured web console accessible from Android or GrapheneOS.
 
 ## Hardware
 
@@ -200,11 +200,11 @@ and GND. Set `buzzer_enabled` to true in web UI settings.
 
 ## Security
 
-- WPA3-Personal hidden AP
+- Hidden WPA3-Personal AP with WPA2 fallback when hostapd cannot start WPA3
 - Mutual TLS on web console (no cert = TCP connection dropped, no 403)
 - SQLCipher AES-256 encrypted database
 - All secrets in `/etc/glasshouse/` (root:root, 600)
-- nftables firewall: only port 443 reachable on AP interface
+- nftables firewall: only HTTPS and SSH reachable on AP interface
 - No internet connection, no telemetry, no cloud
 
 </details>

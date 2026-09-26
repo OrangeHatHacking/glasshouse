@@ -118,13 +118,6 @@ def init_db() -> None:
                 value TEXT
             );
         """)
-        columns = {
-            row["name"]
-            for row in conn.execute("PRAGMA table_info(detections)").fetchall()
-        }
-        if "alias" in columns:
-            conn.execute("ALTER TABLE detections DROP COLUMN alias")
-        conn.execute("DROP TABLE IF EXISTS device_history")
         conn.commit()
         log.info("Database initialised at %s", DB_PATH)
     finally:

@@ -246,7 +246,7 @@ def _export_p12(cli_key: Path, cli_crt: Path, ca_crt: Path) -> None:
         os.chown(CLIENT_P12, uid, -1)
     except Exception:
         pass
-    CLIENT_P12.chmod(0o644)
+    CLIENT_P12.chmod(0o600)
     print(f"      Client cert exported to {CLIENT_P12}")
 
 

@@ -1,25 +1,25 @@
 # BLE scanning
-bleak>=0.21.1
+bleak==3.0.2
 
 # Web framework
-fastapi>=0.110.0
-uvicorn[standard]>=0.29.0
-jinja2>=3.1.3
-aiofiles>=23.2.1
-python-multipart>=0.0.9
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+jinja2==3.1.6
+aiofiles==25.1.0
+python-multipart==0.0.32
 
 # Data validation
-pydantic>=2.6.0
-pydantic-settings>=2.2.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
 
 # Encrypted storage
-sqlcipher3>=0.5.3
+sqlcipher3==0.6.2
 
 # MQTT (optional)
-paho-mqtt>=2.0.0
+paho-mqtt==2.1.0
 
 # Cert generation
-cryptography>=42.0.0
+cryptography==50.0.1
 
 # GPIO (Pi only)
 # RPi.GPIO>=0.7.1
