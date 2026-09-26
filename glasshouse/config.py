@@ -14,6 +14,8 @@ def parse_args() -> argparse.Namespace:
         help="Debug mode: bind to 127.0.0.1:8080, no TLS, no mTLS, "
         "auto-create local dev secret and DB in ./dev_data/",
     )
+    parser.add_argument("--host", help="Debug bind address")
+    parser.add_argument("--port", type=int, help="Debug web port")
     return parser.parse_args()
 
 
@@ -29,8 +31,8 @@ if DEBUG:
     if not _dev_secret.exists():
         _dev_secret.write_text(secrets.token_hex(32))
 
-    AP_IP = "127.0.0.1"
-    WEB_PORT = 8080
+    AP_IP = _args.host or "127.0.0.1"
+    WEB_PORT = _args.port or 8080
     SECRET_PATH = _dev_secret
     CERT_DIR = _dev_dir / "certs"
     DB_PATH = _dev_dir / "glasshouse.db"

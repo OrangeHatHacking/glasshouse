@@ -14,17 +14,39 @@
   }
   .signature-table {
     width: 100%;
+    table-layout: fixed;
     margin: 0;
     font-size: 11px;
   }
   .signature-table th,
   .signature-table td { padding: 4px 8px; }
   .signature-table th { font-size: 10px; }
+  .signature-table th:first-child { width: 80%; }
+  .signature-table th:last-child { width: 20%; }
   .vendor-row { cursor: pointer; }
-  .vendor-table { border-collapse: separate; border-spacing: 0; }
+  .vendor-table { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+  .vendor-table th:nth-child(1),
+  .vendor-table th:nth-child(2),
+  .vendor-table th:nth-child(4) { white-space: nowrap; }
+  .vendor-table th:nth-child(1) { width: 17%; }
+  .vendor-table th:nth-child(2) { width: 23%; }
+  .vendor-table th:nth-child(3) { width: 32%; }
+  .vendor-table th:nth-child(4) { width: 20%; }
+  .vendor-table th:nth-child(5) { width: 8%; }
+  .vendor-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .vendor-table td:nth-child(2) { white-space: normal; text-align: center; }
+  .vendor-table td:nth-child(4) { white-space: nowrap; }
   .vendor-table > tbody > tr.vendor-row > td,
   .vendor-table > tbody > tr.signature-row > td { border-bottom: 1px solid var(--border); }
-  .vendor-arrow { color: var(--accent); text-align: center; }
+  .vendor-arrow {
+    width: 8%;
+    color: var(--accent);
+    font-size: 16px;
+    text-align: center;
+    padding-left: 0;
+    padding-right: 8px;
+    display: table-cell !important;
+  }
 </style>
 <table class="vendor-table">
   <thead>
@@ -35,7 +57,7 @@
     {% set v = row.vendor %}
     <tr class="vendor-row" onclick="toggleSignatures('signatures-{{ row.index }}', this)">
       <td><strong>{{ v.name }}</strong></td>
-      <td><span class="badge badge-{{ v.category }}">{{ v.category }}</span></td>
+      <td><span class="badge badge-{{ v.category }}">{% if v.category == 'doorbell' %}door<wbr>bell{% elif v.category == 'bodycam' %}body<wbr>cam{% elif v.category == 'smartglass' %}smart<wbr>glass{% else %}{{ v.category }}{% endif %}</span></td>
       <td style="color:var(--muted);font-size:12px;">{{ v.description }}</td>
       <td>
         <form class="inline" method="post" action="/vendors/toggle/{{ row.index }}" onclick="event.stopPropagation()">

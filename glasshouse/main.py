@@ -97,10 +97,13 @@ async def main() -> None:
     ble.register_detection_callback(mqtt_client.on_detection)
 
     stop_event = asyncio.Event()
+    web_server = None
 
     def _handle_signal():
         log.info("Shutdown signal received")
         stop_event.set()
+        if web_server is not None:
+            web_server.should_exit = True
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):

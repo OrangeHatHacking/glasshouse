@@ -20,17 +20,20 @@
 </div>
 {% if detections %}
 <style>
-  .detection-table { width: 100%; table-layout: fixed; }
+  .detection-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
   .detection-table th:nth-child(1) { width: 18%; }
-  .detection-table th:nth-child(2) { width: 18%; }
-  .detection-table th:nth-child(3) { width: 25%; }
-  .detection-table th:nth-child(4) { width: 23%; }
-  .detection-table th:nth-child(5) { width: 15%; }
-  .detection-table th:nth-child(4),
-  .detection-table td:nth-child(4),
-  .detection-table th:nth-child(5),
-  .detection-table td:nth-child(5) { text-align: center; }
+  .detection-table th:nth-child(2) { width: 22%; }
+  .detection-table th:nth-child(3) { width: 32%; }
+  .detection-table th:nth-child(4) { width: 28%; text-align: center; }
+  .detection-table td:nth-child(4) { text-align: center; }
   .detection-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .detection-table > tbody > tr.detection-row > td,
+  .detection-table > tbody > tr.detection-details-row > td { border-bottom: 1px solid var(--border); }
   .detection-table .match-label { white-space: normal; }
   .detection-time { white-space: nowrap; line-height: 1.35; }
   .detection-time .date { color: var(--muted); font-size: 10px; }
@@ -59,7 +62,6 @@
       <th>MAC</th>
       <th>Name</th>
       <th>Vendor</th>
-      <th>Match</th>
     </tr>
   </thead>
   <tbody>
@@ -72,12 +74,12 @@
       <td class="mac-address">{{ d.mac.split(':')[:3]|join(':') }}<br>{{ d.mac.split(':')[3:]|join(':') }}</td>
       <td>{{ d.local_name or '—' }}</td>
       <td><span class="badge badge-{{ d.match_type.split(':')[0] if d.match_type else 'custom' }}">{{ d.vendor or '—' }}</span></td>
-      <td class="match-label" style="color:var(--muted);font-size:11px;" title="{{ d.match_type }}">{{ d.match_label }}</td>
     </tr>
     <tr class="detection-details-row">
-      <td colspan="5">
+      <td colspan="4">
         <div class="detection-detail-line"><span class="detection-detail-label">First seen:</span><span class="detection-time"><span>{{ d.first_seconds }}</span> <span class="date">{{ d.first_date }}</span></span></div>
         <div class="detection-detail-line"><span class="detection-detail-label">Last seen:</span><span class="detection-time"><span>{{ d.last_seconds }}</span> <span class="date">{{ d.last_date }}</span></span></div>
+        <div class="detection-detail-line"><span class="detection-detail-label">Match type:</span><span class="match-label" title="{{ d.match_type }}">{{ d.match_label }}</span></div>
         <div class="detection-detail-line"><span class="detection-detail-label">RSSI:</span><span>{{ d.rssi or '—' }}</span></div>
         <div class="detection-detail-line"><span class="detection-detail-label">Company IDs:</span><span>{{ d.company_ids|join(', ') if d.company_ids else '—' }}</span></div>
         <div class="detection-detail-line"><span class="detection-detail-label">Service UUIDs:</span><span>{{ d.service_uuid_list|join(', ') if d.service_uuid_list else '—' }}</span></div>

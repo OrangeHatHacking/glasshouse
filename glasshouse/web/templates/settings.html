@@ -1,6 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Settings</h2>
+<h2 style="margin-top:20px;">Appearance</h2>
+<div class="field">
+  <label for="theme">Theme</label>
+  <select id="theme">
+    <option value="terminal">Terminal</option>
+    <option value="amber">Amber</option>
+    <option value="blueprint">Blueprint</option>
+    <option value="gruvbox">Gruvbox Dark</option>
+    <option value="neon-riot">Neon Riot</option>
+  </select>
+</div>
+<script>
+const themeSelect = document.getElementById("theme");
+themeSelect.value = localStorage.getItem("glasshouse-theme") || "terminal";
+themeSelect.addEventListener("change", function() {
+  localStorage.setItem("glasshouse-theme", this.value);
+  document.documentElement.dataset.theme = this.value;
+});
+</script>
 <form method="post" action="/settings/save">
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
   <h2 style="margin-top:20px;">MQTT</h2>

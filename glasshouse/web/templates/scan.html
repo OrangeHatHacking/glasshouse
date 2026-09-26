@@ -6,12 +6,20 @@
 </p>
 <style>
   .scan-table-wrap { overflow-x: auto; }
-  .scan-table { min-width: 620px; width: 100%; table-layout: fixed; }
+  .scan-table {
+    min-width: 620px;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
   .scan-table th:nth-child(1) { width: 28%; }
   .scan-table th:nth-child(2) { width: 28%; }
   .scan-table th:nth-child(3) { width: 30%; }
   .scan-table th:nth-child(4) { width: 14%; }
   .scan-table td { overflow-wrap: anywhere; word-break: break-word; }
+  .scan-table > tbody > tr.device-row > td,
+  .scan-table > tbody > tr.device-details-row > td { border-bottom: 1px solid var(--border); }
   .device-row { cursor: pointer; }
   .device-details-row > td {
     padding: 4px 8px 8px 8px;

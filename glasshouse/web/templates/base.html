@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Glasshouse</title>
+  <script>
+    document.documentElement.dataset.theme = localStorage.getItem("glasshouse-theme") || "terminal";
+  </script>
   <style>
     :root {
       --bg: #0d0d0d;
@@ -16,6 +19,7 @@
       --danger: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; overflow-x: hidden; }
     body {
       background: var(--bg);
       color: var(--text);
@@ -27,21 +31,22 @@
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       padding: 10px 16px;
-      overflow-x: auto;
+      overflow-x: hidden;
     }
     .nav-links {
       display: flex;
       gap: 14px;
       flex-wrap: nowrap;
       align-items: center;
-      min-width: max-content;
+      justify-content: space-between;
+      width: 100%;
     }
     nav a {
       color: var(--muted);
       text-decoration: none;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: .5px;
     }
     nav a:hover, nav a.active { color: var(--accent); }
     nav .brand {
@@ -57,7 +62,7 @@
       height: 15px;
       vertical-align: -2px;
     }
-    main { padding: 16px; max-width: 900px; }
+    main { width: 100%; max-width: 900px; margin: 0 auto; padding: 16px clamp(10px, 3vw, 16px); }
     h2 {
       color: var(--accent);
       font-size: 13px;
@@ -136,6 +141,7 @@
     .rssi-weak   { color: var(--danger); }
     .empty { color: var(--muted); font-size: 12px; padding: 20px 0; }
   </style>
+  <link rel="stylesheet" href="/static/themes.css?v=12">
 </head>
 <body>
   <nav>
