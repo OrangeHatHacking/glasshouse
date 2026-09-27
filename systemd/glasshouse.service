@@ -9,7 +9,6 @@ ExecStart=/opt/glasshouse/venv/bin/python3 -m glasshouse.main
 WorkingDirectory=/opt/glasshouse
 Restart=on-failure
 RestartSec=5
-WatchdogSec=60
 EnvironmentFile=-/etc/glasshouse/env
 StandardOutput=journal
 StandardError=journal

@@ -135,12 +135,19 @@ echo "      Done."
 echo "[6/7] Installing systemd service..."
 cp "$REPO_DIR/systemd/glasshouse.service" /etc/systemd/system/glasshouse.service
 cp "$REPO_DIR/systemd/glasshouse-ap.service" /etc/systemd/system/glasshouse-ap.service
+install -d -m 0755 /etc/systemd/system/nftables.service.d
+cp "$REPO_DIR/systemd/nftables.service.d/glasshouse.conf" \
+  /etc/systemd/system/nftables.service.d/glasshouse.conf
 
 systemctl disable hostapd 2>/dev/null || true
 
 systemctl daemon-reload
-systemctl unmask hostapd
+systemctl unmask hostapd glasshouse-ap glasshouse nftables
 systemctl enable ssh
+systemctl unmask bluetooth 2>/dev/null || true
+systemctl enable bluetooth
+systemctl enable hciuart 2>/dev/null || true
+systemctl enable nftables
 systemctl enable glasshouse-ap
 systemctl enable glasshouse
 echo "[7/7] Applying host hardening..."

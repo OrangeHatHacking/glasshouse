@@ -33,12 +33,6 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json" if config.DEBUG else None,
     )
 
-    # mTLS middleware only in production
-    if not config.DEBUG:
-        from glasshouse.web.auth import MTLSMiddleware
-
-        app.add_middleware(MTLSMiddleware)
-
     # Static assets (CSS, minimal JS)
     static_dir = Path(__file__).parent / "templates" / "static"
     if static_dir.exists():
