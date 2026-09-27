@@ -82,6 +82,7 @@ apt-get update -qq
 apt-get install -y --no-install-recommends \
   python3 python3-pip python3-venv \
   build-essential python3-dev pkg-config python3-rpi.gpio \
+  rfkill \
   hostapd dnsmasq nftables \
   network-manager \
   openssh-server \

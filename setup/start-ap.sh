@@ -5,6 +5,10 @@ WPA2_TEMPLATE=/opt/glasshouse/hostapd-wpa2.conf.tmpl
 HOSTAPD_CONFIG=/etc/hostapd/hostapd.conf
 AP_INTERFACE=${GLASSHOUSE_AP_IFACE:-wlan0}
 
+if command -v rfkill >/dev/null 2>&1; then
+  rfkill unblock wifi || rfkill unblock all || true
+fi
+
 if ! ip link show "$AP_INTERFACE" >/dev/null 2>&1; then
   logger -t glasshouse "AP interface not found: $AP_INTERFACE"
   exit 1

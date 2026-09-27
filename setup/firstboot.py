@@ -29,6 +29,7 @@ CERT_DIR = CONF_DIR / "certs"
 VAR_DIR = Path("/var/lib/glasshouse")
 SECRET_FILE = CONF_DIR / "secret"
 AP_CONF = CONF_DIR / "ap.conf"
+P12_PASSWORD_FILE = CONF_DIR / "client_p12_password"
 parser = argparse.ArgumentParser(description="Glasshouse first boot setup")
 parser.add_argument("--user", dest="operator_user", help="Pi login user")
 args = parser.parse_args()
@@ -216,12 +217,18 @@ def step_certs() -> None:
 
 
 def _export_p12(cli_key: Path, cli_crt: Path, ca_crt: Path) -> None:
-    """Export client cert as PKCS#12 for Android import (no password on P12)."""
+    """Export a password-protected PKCS#12 file for Android import."""
+    if P12_PASSWORD_FILE.exists():
+        p12_password = P12_PASSWORD_FILE.read_text().strip()
+    else:
+        p12_password = _random_password(32)
+        _write_secret(P12_PASSWORD_FILE, p12_password)
     subprocess.run(
         [
             "openssl",
             "pkcs12",
             "-export",
+            "-legacy",
             "-inkey",
             str(cli_key),
             "-in",
@@ -231,7 +238,7 @@ def _export_p12(cli_key: Path, cli_crt: Path, ca_crt: Path) -> None:
             "-out",
             str(CLIENT_P12),
             "-passout",
-            "pass:",
+            f"pass:{p12_password}",
             "-name",
             "Glasshouse",
         ],
@@ -248,6 +255,7 @@ def _export_p12(cli_key: Path, cli_crt: Path, ca_crt: Path) -> None:
         pass
     CLIENT_P12.chmod(0o600)
     print(f"      Client cert exported to {CLIENT_P12}")
+    print(f"      Client cert password: {p12_password}")
 
 
 def step_ap_credentials() -> None:
