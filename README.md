@@ -68,7 +68,7 @@ ssh-keygen -t ed25519 -a 100 -f ~/.ssh/glasshouse_ed25519
 ```bash
 cat ~/.ssh/glasshouse_ed25519.pub | \
   ssh pi@<initial-ip> \
-  'cat >> ~/.ssh/authorized_keys'
+  'umask 077; mkdir -p ~/.ssh; cat >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys'
 ```
 
 ```bash
