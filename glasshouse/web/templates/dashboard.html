@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% if not time_synced %}
+<div style="padding:6px 12px;margin-bottom:12px;border:1px solid var(--warn, #ff4444);color:var(--warn, #ff4444);font-size:12px;">
+  ⏱ Clock not synced — times are relative. <a href="/settings/" style="color:inherit;text-decoration:underline;">Sync now</a>
+</div>
+{% endif %}
 <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
   <h2 style="margin-bottom:12px;">Recent Detections</h2>
   <form method="get" action="/" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">

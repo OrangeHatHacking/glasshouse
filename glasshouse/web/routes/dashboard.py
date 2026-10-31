@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from glasshouse import timesync
 from glasshouse.storage import db
 
 log = logging.getLogger(__name__)
@@ -23,6 +24,10 @@ WINDOWS = {
 
 
 def _time_parts(value: str) -> tuple[str, str, str]:
+    elapsed = timesync.elapsed_since(value)
+    if elapsed is not None:
+        rel = timesync.format_elapsed(elapsed)
+        return (rel, rel, "⏱ not synced")
     timestamp = datetime.fromisoformat(value)
     return (
         timestamp.strftime("%H:%M"),
@@ -79,7 +84,12 @@ async def dashboard(request: Request, window: str = "today", sort: str = "last_s
     return templates.TemplateResponse(
         request,
         "dashboard.html",
-        {"detections": detections, "window": window, "sort": sort},
+        {
+            "detections": detections,
+            "window": window,
+            "sort": sort,
+            "time_synced": timesync.is_synced(),
+        },
     )
 
 
@@ -91,4 +101,8 @@ async def api_detections(limit: int = 50, offset: int = 0):
 @router.get("/api/status")
 async def api_status():
     """Lightweight status ping for the web UI."""
-    return {"status": "scanning", "version": "0.1.0"}
+    return {
+        "status": "scanning",
+        "version": "0.1.0",
+        "time_synced": timesync.is_synced(),
+    }

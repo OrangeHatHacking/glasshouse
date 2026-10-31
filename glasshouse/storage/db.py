@@ -166,12 +166,13 @@ async def insert_detection(
     service_uuids: list[str] | None,
     local_name: str | None,
     tx_power: int | None,
+    timestamp: str | None = None,
     lat: float | None = None,
     lon: float | None = None,
     alt: float | None = None,
 ) -> int:
     row = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": timestamp or datetime.now(timezone.utc).isoformat(),
         "mac": mac.upper(),
         "vendor": vendor,
         "match_type": match_type,
@@ -392,3 +393,40 @@ def _clear_history_sync() -> None:
 
 async def clear_history() -> None:
     await _run(_clear_history_sync)
+
+
+def _fix_unsync_detections_sync(boot_id: str, offset: float) -> int:
+    """Convert pre-sync monotonic timestamps to real ISO timestamps."""
+    conn = _get_connection()
+    try:
+        pattern = f"UNSYNC:{boot_id}:%"
+        rows = conn.execute(
+            "SELECT id, timestamp FROM detections WHERE timestamp LIKE ?",
+            (pattern,),
+        ).fetchall()
+        count = 0
+        for row in rows:
+            parts = row["timestamp"].split(":", 2)
+            if len(parts) != 3:
+                continue
+            try:
+                mono = float(parts[2])
+            except ValueError:
+                continue
+            real_epoch = mono + offset
+            real_iso = datetime.fromtimestamp(
+                real_epoch, tz=timezone.utc
+            ).isoformat()
+            conn.execute(
+                "UPDATE detections SET timestamp = ? WHERE id = ?",
+                (real_iso, row["id"]),
+            )
+            count += 1
+        conn.commit()
+        return count
+    finally:
+        conn.close()
+
+
+async def fix_unsync_detections(boot_id: str, offset: float) -> int:
+    return await _run(_fix_unsync_detections_sync, boot_id, offset)

@@ -1,6 +1,75 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Settings</h2>
+
+<h2 style="margin-top:20px;">Time Sync</h2>
+<div class="field">
+  <label>Pi clock</label>
+  <span id="pi-time">loading...</span>
+</div>
+<div class="field">
+  <label>Phone/laptop clock</label>
+  <span id="local-time"></span>
+</div>
+<div class="field">
+  <label>Drift</label>
+  <span id="time-drift">—</span>
+</div>
+<div class="field">
+  <button type="button" id="sync-time-btn">Sync from this device</button>
+  <span id="sync-result" style="margin-left:10px;"></span>
+</div>
+<script>
+(function() {
+  const piTimeEl = document.getElementById("pi-time");
+  const localTimeEl = document.getElementById("local-time");
+  const driftEl = document.getElementById("time-drift");
+  const syncBtn = document.getElementById("sync-time-btn");
+  const resultEl = document.getElementById("sync-result");
+
+  function updateLocal() {
+    localTimeEl.textContent = new Date().toISOString().replace("T"," ").split(".")[0] + " UTC";
+  }
+  updateLocal();
+  setInterval(updateLocal, 1000);
+
+  fetch("/api/time").then(r => r.json()).then(data => {
+    const piDate = new Date(data.time * 1000);
+    piTimeEl.textContent = piDate.toISOString().replace("T"," ").split(".")[0] + " UTC";
+    const drift = Math.round(data.time - Date.now()/1000);
+    driftEl.textContent = (drift >= 0 ? "+" : "") + drift + "s";
+    if (!data.synced) {
+      driftEl.textContent += " (not synced)";
+      driftEl.style.color = "var(--warn, #ff4444)";
+    } else if (Math.abs(drift) > 30) {
+      driftEl.style.color = "var(--warn, #ff4444)";
+    }
+  }).catch(() => { piTimeEl.textContent = "unavailable"; });
+
+  syncBtn.addEventListener("click", function() {
+    syncBtn.disabled = true;
+    resultEl.textContent = "syncing...";
+    fetch("/api/time", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({timestamp: Math.floor(Date.now()/1000)})
+    }).then(r => {
+      if (!r.ok) return r.json().then(e => { throw new Error(e.detail || r.statusText); });
+      return r.json();
+    }).then(data => {
+      resultEl.textContent = "synced (drift was " + data.drift + "s)";
+      resultEl.style.color = "var(--ok, #44ff44)";
+      piTimeEl.textContent = new Date(data.new_time * 1000).toISOString().replace("T"," ").split(".")[0] + " UTC";
+      driftEl.textContent = "0s";
+      driftEl.style.color = "";
+    }).catch(err => {
+      resultEl.textContent = "failed: " + err.message;
+      resultEl.style.color = "var(--warn, #ff4444)";
+    }).finally(() => { syncBtn.disabled = false; });
+  });
+})();
+</script>
+
 <h2 style="margin-top:20px;">Appearance</h2>
 <div class="field">
   <label for="theme">Theme</label>

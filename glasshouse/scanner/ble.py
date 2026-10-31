@@ -21,7 +21,7 @@ from bleak import BleakScanner
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from glasshouse import storage
+from glasshouse import storage, timesync
 from glasshouse.scanner.fingerprint import build_fingerprint, identify_by_fingerprint
 from glasshouse.scanner.matcher import MatchResult, match_custom_filters, match_vendor
 from glasshouse.scanner.oui_lookup import lookup_oui
@@ -173,6 +173,7 @@ async def _handle_advertisement(
         service_uuids=[str(u) for u in (adv.service_uuids or [])],
         local_name=adv.local_name,
         tx_power=adv.tx_power,
+        timestamp=timesync.make_timestamp(),
     )
 
     # Fire registered callbacks (alerts, MQTT)
